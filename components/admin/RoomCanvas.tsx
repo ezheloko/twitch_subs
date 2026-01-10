@@ -73,8 +73,8 @@ export default function RoomCanvas({
         
         // Объединяем с существующими bases, чтобы не потерять загруженные, но еще не добавленные предметы
         setFurnitureBases((prev) => {
-          const existingUrls = new Set(newBases.map((b) => b.imageUrl))
-          const uniquePrev = prev.filter((b) => !existingUrls.has(b.imageUrl))
+          const existingUrls = new Set(newBases.map((b: { id: string; imageUrl: string }) => b.imageUrl))
+          const uniquePrev = prev.filter((b: { id: string; imageUrl: string }) => !existingUrls.has(b.imageUrl))
           return [...newBases, ...uniquePrev]
         })
       }
