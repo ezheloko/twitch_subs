@@ -1,26 +1,142 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* =============== FONTS =============== */
+  --font-inter-tight: 'Inter Tight', sans-serif;
+  
+  /* =============== COLORS =============== */
+  --color-primary-50: #f4f2fe;
+  --color-primary-100: #ece8ff;
+  --color-primary-200: #dcd4ff;
+  --color-primary-300: #c3b1ff;
+  --color-primary-400: #a585ff;
+  --color-primary-500: #864ffe;
+  --color-primary-600: #7c31f6;
+  --color-primary-700: #6d1fe2;
+  --color-primary-800: #5a19be;
+  --color-secondary: #1a1a1c;
+  --color-accent: #fcfcfc;
+  --color-split-text: #1a1a1c;
+  --color-background-1: #fcfcfd;
+  --color-background-2: #f9fafb;
+  --color-background-3: #f4f5f8;
+  --color-background-4: #f0f2f6;
+  --color-background-5: #13171e;
+  --color-background-6: #0f1217;
+  --color-background-7: #181d26;
+  --color-background-8: #070b10;
+  --color-background-9: #1f252f;
+  --color-background-10: #ebebeb;
+  --color-background-11: #b5b5b9;
+  --color-background-12: #eaeceb;
+  --color-stroke-1: #dfe4eb;
+  --color-stroke-2: #e3e7ed;
+  --color-stroke-3: #d7dde5;
+  --color-stroke-4: #eceff4;
+  --color-stroke-5: #1b232f;
+  --color-stroke-6: #202731;
+  --color-stroke-7: #2a333e;
+  --color-stroke-8: #303b49;
+  --color-stroke-9: var(--color-background-8);
+  --color-stroke-10: #dfd1c5;
+
+  --color-ns-yellow: #f9eb57;
+  --color-ns-green: #c6f56f;
+  --color-ns-red: #ffb9a2;
+  --color-ns-cyan: #83e7ee;
+  --color-ns-green-light: #e8fbc6;
+  --color-ns-cyan-light: #cdf5f8;
+  --color-ns-yellow-light: #fdf7bc;
+  --color-ns-ivory: #f4efe7;
+  --color-ns-linen: #beab9a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: var(--color-background-1);
+  --foreground: var(--color-secondary);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: var(--color-background-5);
+    --foreground: var(--color-accent);
+    --color-split-text: #fcfcfc;
   }
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Отключаем скроллбар только для публичных страниц */
+body:not(.admin-page) {
+  overflow: hidden;
+}
+
+body.admin-page {
+  overflow: auto;
+}
+
+#__next:not(.admin-page) {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter-tight), Arial, Helvetica, sans-serif;
+}
+
+/* NextSaas Button Styles */
+.btn {
+  @apply relative inline-block cursor-pointer overflow-hidden rounded-full border text-center font-normal text-nowrap lowercase transition-all duration-500 ease-in-out hover:scale-[1.02];
+}
+
+.btn span {
+  @apply inline-block transition-transform duration-300 ease-in-out first-letter:uppercase;
+}
+
+.btn-primary {
+  @apply bg-primary-500 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] border-primary-600 text-white;
+}
+
+.btn-base {
+  @apply text-base px-[18px] py-2.5;
+}
+
+.btn-sm {
+  @apply px-4 py-1 text-sm;
+}
+
+/* Input styles */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="file"],
+select,
+textarea {
+  @apply w-full px-4 py-2 border border-stroke-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-background-1 text-secondary;
+}
+
+/* Container fixes */
+.container {
+  @apply w-full max-w-7xl mx-auto px-4;
+}
+
+/* Flex fixes */
+.flex {
+  @apply flex;
+}
+
+.flex-col {
+  @apply flex flex-col;
+}
+
+.grid {
+  @apply grid;
 }

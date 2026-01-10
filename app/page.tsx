@@ -1,65 +1,217 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+import { useState, useEffect } from "react"
+import PublicRoomView from "@/components/PublicRoomView"
+import RoomsTilesView from "@/components/RoomsTilesView"
+
+interface Room {
+  id: string
+  title: string
+  orderNumber: number
+  backgroundUrl: string
+  avatars: Array<{
+    id: string
+    username: string
+    imageUrl: string
+    x: number
+    y: number
+    width: number
+    height: number
+    layerIndex: number
+    twitchUrl: string
+    userpicUrl?: string | null
+    subscriptionDate: string | Date
+    createdAt: string | Date
+    reactivationCount?: number
+  }>
+  furniture: Array<{
+    id: string
+    imageUrl: string
+    x: number
+    y: number
+    width: number
+    height: number
+    layerIndex: number
+  }>
+}
+
+export default function HomePage() {
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [currentRoomIndex, setCurrentRoomIndex] = useState(0)
+  const [viewMode, setViewMode] = useState<"room" | "tiles">("room")
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    fetchRooms()
+  }, [])
+
+  const fetchRooms = async () => {
+    try {
+      const response = await fetch("/api/rooms")
+      if (response.ok) {
+        const data = await response.json()
+        // Фильтруем только активные аватары
+        const roomsWithActiveAvatars = data.map((room: Room) => ({
+          ...room,
+          avatars: room.avatars.filter((avatar: any) => avatar.isActive !== false),
+        }))
+        setRooms(roomsWithActiveAvatars)
+        if (roomsWithActiveAvatars.length > 0) {
+          setCurrentRoomIndex(0)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching rooms:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleNavigate = (direction: "prev" | "next") => {
+    if (direction === "prev" && currentRoomIndex > 0) {
+      setCurrentRoomIndex(currentRoomIndex - 1)
+    } else if (direction === "next" && currentRoomIndex < rooms.length - 1) {
+      setCurrentRoomIndex(currentRoomIndex + 1)
+    } else if (direction === "next" && currentRoomIndex === rooms.length - 1) {
+      // Циклический переход: после последней возвращаемся к первой
+      setCurrentRoomIndex(0)
+    } else if (direction === "prev" && currentRoomIndex === 0) {
+      // Циклический переход: перед первой переходим к последней
+      setCurrentRoomIndex(rooms.length - 1)
+    }
+  }
+
+  const handleRoomSelect = (roomId: string) => {
+    const index = rooms.findIndex((r) => r.id === roomId)
+    if (index !== -1) {
+      setCurrentRoomIndex(index)
+      setViewMode("room")
+    }
+  }
+
+  // Обработка клавиатурной навигации
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (viewMode !== "room") return
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault()
+        handleNavigate("prev")
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault()
+        handleNavigate("next")
+      } else if (e.key === "Escape") {
+        setViewMode("tiles")
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [currentRoomIndex, rooms.length, viewMode])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold mb-2">Загрузка...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (rooms.length === 0) {
+    return (
+      <div className="min-h-screen bg-background-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold mb-2">Комнаты не созданы</div>
+          <p className="text-gray-600">
+            Администратор еще не создал ни одной комнаты
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </div>
+    )
+  }
+
+  if (viewMode === "tiles") {
+    return (
+      <RoomsTilesView
+        rooms={rooms}
+        onRoomSelect={handleRoomSelect}
+        onBack={() => setViewMode("room")}
+      />
+    )
+  }
+
+  const currentRoom = rooms[currentRoomIndex]
+  const hasPrev = currentRoomIndex > 0 || rooms.length > 1
+  const hasNext = currentRoomIndex < rooms.length - 1 || rooms.length > 1
+
+  return (
+    <div className="relative w-full h-screen overflow-hidden" style={{ margin: 0, padding: 0 }}>
+      {/* Кнопка переключения в режим плитки */}
+      <button
+        onClick={() => setViewMode("tiles")}
+        className="absolute top-0 right-0 z-50 bg-black/70 backdrop-blur-sm hover:bg-white transition-colors border-0 group"
+        style={{ 
+          position: "absolute", 
+          top: 0, 
+          right: 0, 
+          zIndex: 1000, 
+          borderRadius: "0 0 0 8px", 
+          margin: 0, 
+          padding: "12px",
+          cursor: "pointer"
+        }}
+        title="Все комнаты"
+      >
+        <div className="relative">
+          {/* Иконка ромбов */}
+          <svg 
+            width="20" 
+            height="20" 
+            viewBox="0 0 20 25" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="1.2" 
+            className="text-white group-hover:text-black transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {/* Верхний ромб */}
+            <path d="M10 1.5 L11.2 4 L10 6.5 L8.8 4 Z" />
+            {/* Второй ряд - два ромба */}
+            <path d="M6 6 L7.2 8.5 L6 11 L4.8 8.5 Z" />
+            <path d="M14 6 L15.2 8.5 L14 11 L12.8 8.5 Z" />
+            {/* Третий ряд - три ромба */}
+            <path d="M2 10.5 L3.2 13 L2 15.5 L0.8 13 Z" />
+            <path d="M10 10.5 L11.2 13 L10 15.5 L8.8 13 Z" />
+            <path d="M18 10.5 L19.2 13 L18 15.5 L16.8 13 Z" />
+            {/* Четвертый ряд - два ромба */}
+            <path d="M6 15 L7.2 17.5 L6 20 L4.8 17.5 Z" />
+            <path d="M14 15 L15.2 17.5 L14 20 L12.8 17.5 Z" />
+            {/* Нижний ромб */}
+            <path d="M10 18.5 L11.2 21 L10 23.5 L8.8 21 Z" />
+          </svg>
+          
+          {/* Всплывающая подсказка */}
+          <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 bg-black/90 text-white text-sm rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+            Все комнаты
+          </div>
         </div>
-      </main>
+      </button>
+
+      {/* Индикатор текущей комнаты */}
+      <div
+        className="absolute top-0 left-0 z-50 bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-br-lg text-sm"
+        style={{ position: "absolute", top: 0, left: 0, zIndex: 1000, margin: 0 }}
+      >
+        {currentRoomIndex + 1} / {rooms.length}
+      </div>
+
+      <PublicRoomView
+        room={currentRoom}
+        onNavigate={handleNavigate}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+      />
     </div>
-  );
+  )
 }

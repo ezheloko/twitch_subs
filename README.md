@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Twitch Subscribers
 
-## Getting Started
+Веб-приложение для визуализации подписчиков Twitch-канала с административной панелью управления.
 
-First, run the development server:
+## Возможности
 
+- 🔐 Авторизация через Twitch OAuth
+- 🏠 Управление комнатами с фонами 1920x1080
+- 👤 База аватаров подписчиков
+- 🪑 Предметы интерьера с настройкой слоев
+- 🎨 Drag & Drop для размещения элементов
+- 📱 Адаптивный дизайн
+- 🎬 Режим веб-стрима с автоматической сменой комнат
+
+## Быстрый старт
+
+1. Установите зависимости:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Настройте `.env` файл (см. `INSTALLATION.md`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Инициализируйте базу данных:
+```bash
+npm run db:generate
+npm run db:push
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Запустите проект:
+```bash
+npm run dev
+```
 
-## Learn More
+5. Откройте http://localhost:3000/admin и войдите через Twitch
 
-To learn more about Next.js, take a look at the following resources:
+## Подробная инструкция
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [GITHUB_SETUP.md](./GITHUB_SETUP.md) - Инструкция по загрузке проекта на GitHub
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Инструкция по развертыванию на различных серверах и хостингах
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Технологии
 
-## Deploy on Vercel
+- **Next.js 16** - React фреймворк
+- **TypeScript** - Типизация
+- **Prisma** - ORM для работы с базой данных
+- **PostgreSQL** - База данных
+- **NextAuth.js** - Аутентификация
+- **Tailwind CSS** - Стилизация
+- **@dnd-kit** - Drag & Drop функциональность
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Структура проекта
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+├── app/
+│   ├── admin/          # Административная панель
+│   ├── api/            # API endpoints
+│   ├── stream/         # Страница для веб-стрима
+│   └── page.tsx        # Публичная страница
+├── lib/                # Утилиты и конфигурация
+├── prisma/             # Схема базы данных
+└── public/             # Статические файлы
+```
+
+## Лицензия
+
+Private

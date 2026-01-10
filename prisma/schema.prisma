@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Модели для NextAuth
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Основные модели приложения
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  isMainAdmin   Boolean   @default(false) // Главный администратор может добавлять других админов
+  twitchLogin   String?   @unique // Логин Twitch для проверки доступа
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  rooms         Room[]
+  avatars       Avatar[]
+  furniture     Furniture[]
+}
+
+model Room {
+  id          String     @id @default(cuid())
+  title       String
+  orderNumber Int        @unique // Порядковый номер комнаты
+  backgroundUrl String   // URL фона 1920x1080
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  avatars     Avatar[]
+  furniture   Furniture[]
+}
+
+model AvatarBase {
+  id        String   @id @default(cuid())
+  imageUrl  String   // URL изображения аватара
+  createdAt DateTime @default(now())
+  
+  avatars   Avatar[]
+}
+
+model Furniture {
+  id         String   @id @default(cuid())
+  roomId     String
+  imageUrl   String   // URL изображения предмета интерьера
+  x          Float    // Позиция X
+  y          Float    // Позиция Y
+  width      Float    // Ширина
+  height     Float    // Высота
+  layerIndex Int      // Индекс слоя (z-index)
+  isLocked   Boolean  @default(false) // Заблокирован ли предмет для перемещения
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Avatar {
+  id             String      @id @default(cuid())
+  roomId         String
+  avatarBaseId   String
+  imageUrl       String      // URL изображения аватара
+  username       String      // Имя пользователя Twitch
+  twitchUrl      String      // URL профиля Twitch (https://twitch.tv/username)
+  userpicUrl     String?     // URL userpic Twitch
+  x              Float       // Позиция X
+  y              Float       // Позиция Y
+  width          Float       // Ширина
+  height         Float       // Высота
+  layerIndex     Int         // Индекс слоя (z-index)
+  isLocked       Boolean     @default(false) // Заблокирован ли аватар
+  isActive       Boolean     @default(true) // Активен ли аватар
+  createdAt      DateTime    @default(now()) // Дата создания
+  subscriptionDate DateTime  @default(now()) // Дата подписки (обновляется при продлении)
+  reactivationCount Int      @default(0) // Количество реактиваций
+  updatedAt      DateTime    @updatedAt
+
+  room           Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  avatarBase     AvatarBase  @relation(fields: [avatarBaseId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StreamSettings {
+  id            String   @id @default(cuid())
+  slideDuration Int      @default(15) // Длительность показа комнаты в секундах
+  transitionType String  @default("fade") // Тип перехода: "fade" или "swipe"
+  streamUrl     String?  // URL для стрима (опционально)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
