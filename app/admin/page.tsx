@@ -92,7 +92,7 @@ export default function AdminPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-secondary">Административная панель</h1>
-              <p className="text-sm text-gray-600">Добро пожаловать, {session.user.name}!</p>
+              <p className="text-sm text-gray-600">Добро пожаловать, {session?.user?.name || session?.user?.email || 'Пользователь'}!</p>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: "/admin" })}
