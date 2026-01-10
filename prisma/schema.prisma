@@ -63,6 +63,7 @@ model User {
   rooms         Room[]
   avatars       Avatar[]
   furniture     Furniture[]
+  adminRequest  AdminRequest?
 }
 
 model Room {
@@ -139,4 +140,18 @@ model StreamSettings {
   streamUrl     String?  // URL для стрима (опционально)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model AdminRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String   @default("pending") // "pending", "approved", "rejected"
+  message     String?  // Сообщение от пользователя (опционально)
+  reviewedBy  String?  // ID главного админа, который рассмотрел заявку
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId])
 }

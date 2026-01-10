@@ -17,6 +17,9 @@ export const authOptions: NextAuthOptions = {
           
           if (!twitchLogin) return false;
 
+          const normalizedTwitchLogin = twitchLogin.toLowerCase().trim();
+          const email = user.email || `${normalizedTwitchLogin}@twitch.local`;
+
           // Проверяем, есть ли уже главный администратор
           let adminCount = 0;
           try {
@@ -25,59 +28,60 @@ export const authOptions: NextAuthOptions = {
             });
           } catch (error) {
             console.error("Error checking admin count:", error);
-            // Если база данных не инициализирована, считаем что это первый пользователь
             adminCount = 0;
           }
 
           const isFirstUser = adminCount === 0;
 
-          // Сначала ищем пользователя по twitchLogin (если был добавлен админом)
-          const existingByTwitchLogin = await prisma.user.findUnique({
-            where: { twitchLogin: twitchLogin.toLowerCase() },
+          // СНАЧАЛА ищем пользователя по twitchLogin (основной идентификатор для Twitch)
+          let existingUser = await prisma.user.findUnique({
+            where: { twitchLogin: normalizedTwitchLogin },
           });
 
-          // Если пользователь найден по twitchLogin, обновляем его данные
-          if (existingByTwitchLogin) {
-            await prisma.user.update({
-              where: { id: existingByTwitchLogin.id },
-              data: {
-                email: user.email || existingByTwitchLogin.email,
-                name: user.name || existingByTwitchLogin.name,
-                image: user.image || existingByTwitchLogin.image,
-                twitchLogin: twitchLogin.toLowerCase(),
-                // Сохраняем статус админа, если он был установлен
-                isMainAdmin: existingByTwitchLogin.isMainAdmin || isFirstUser,
-              },
+          // Если не найден по twitchLogin, ищем по email
+          if (!existingUser && email) {
+            existingUser = await prisma.user.findUnique({
+              where: { email },
             });
-            return true;
           }
 
-          // Если пользователь не найден по twitchLogin, ищем по email
-          const email = user.email || `${twitchLogin}@twitch.local`;
-          const existingByEmail = await prisma.user.findUnique({
-            where: { email },
-          });
-
-          if (existingByEmail) {
-            // Обновляем существующего пользователя
-            await prisma.user.update({
-              where: { id: existingByEmail.id },
-              data: {
-                twitchLogin: twitchLogin.toLowerCase(),
-                name: user.name || existingByEmail.name,
-                image: user.image || existingByEmail.image,
-                // Если это первый пользователь, делаем его главным админом
-                ...(isFirstUser ? { isMainAdmin: true } : {}),
-              },
-            });
+          if (existingUser) {
+            // Если найден по email, но twitchLogin отличается - это другой Twitch аккаунт с той же почтой
+            // Создаем нового пользователя с уникальным email
+            if (existingUser.twitchLogin && existingUser.twitchLogin.toLowerCase() !== normalizedTwitchLogin) {
+              console.log(`[Auth] Different Twitch account with same email. Creating new user for ${normalizedTwitchLogin}`);
+              // Создаем нового пользователя с уникальным email
+              await prisma.user.create({
+                data: {
+                  email: `${normalizedTwitchLogin}@twitch.local`, // Уникальный email для этого Twitch аккаунта
+                  name: user.name,
+                  image: user.image,
+                  twitchLogin: normalizedTwitchLogin,
+                  isMainAdmin: false, // Новый пользователь не становится главным админом автоматически
+                },
+              });
+            } else {
+              // Обновляем существующего пользователя, НО НЕ ТРОГАЕМ isMainAdmin НИКОГДА
+              // Статус главного админа устанавливается только вручную через базу данных
+              await prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                  twitchLogin: normalizedTwitchLogin,
+                  name: user.name || existingUser.name,
+                  image: user.image || existingUser.image,
+                  // isMainAdmin НЕ обновляем - сохраняем существующее значение ВСЕГДА
+                },
+              });
+            }
           } else {
             // Создаем нового пользователя
             await prisma.user.create({
               data: {
-                email,
+                email: email,
                 name: user.name,
                 image: user.image,
-                twitchLogin: twitchLogin.toLowerCase(),
+                twitchLogin: normalizedTwitchLogin,
+                // Только первый пользователь становится главным админом
                 isMainAdmin: isFirstUser,
               },
             });
@@ -86,17 +90,32 @@ export const authOptions: NextAuthOptions = {
           return true;
         } catch (error) {
           console.error("Error in signIn callback:", error);
-          // В случае ошибки все равно разрешаем вход, чтобы пользователь мог увидеть проблему
           return true;
         }
       }
       return false;
     },
     async jwt({ token, user, account, profile }) {
-      if (account?.provider === "twitch" && user?.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: user.email },
-        });
+      if (account?.provider === "twitch") {
+        // Сначала пытаемся найти по twitchLogin из профиля
+        const twitchLogin = (profile as any)?.preferred_username || (profile as any)?.login || user.name?.toLowerCase();
+        const normalizedTwitchLogin = twitchLogin ? twitchLogin.toLowerCase().trim() : null;
+        
+        let dbUser = null;
+        
+        // Ищем сначала по twitchLogin (основной идентификатор для Twitch)
+        if (normalizedTwitchLogin) {
+          dbUser = await prisma.user.findUnique({
+            where: { twitchLogin: normalizedTwitchLogin },
+          });
+        }
+        
+        // Если не найден по twitchLogin, ищем по email
+        if (!dbUser && user?.email) {
+          dbUser = await prisma.user.findUnique({
+            where: { email: user.email },
+          });
+        }
         
         if (dbUser) {
           token.id = dbUser.id;

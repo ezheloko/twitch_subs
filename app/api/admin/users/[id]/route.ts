@@ -32,13 +32,14 @@ export async function DELETE(
     // Нельзя удалить главного админа
     if (targetUser.isMainAdmin) {
       return NextResponse.json(
-        { error: "Cannot delete main admin" },
+        { error: "Cannot delete main admin. Transfer rights first." },
         { status: 403 }
       )
     }
 
-    await prisma.user.delete({
-      where: { id },
+    // Удаляем заявку на администрирование (это лишит пользователя прав админа)
+    await prisma.adminRequest.deleteMany({
+      where: { userId: id },
     })
 
     return NextResponse.json({ success: true })

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import RoomEditor from "@/components/admin/RoomEditor"
 import AvatarBaseManager from "@/components/admin/AvatarBaseManager"
 import AdminSettings from "@/components/admin/AdminSettings"
+import AdminRequestForm from "@/components/admin/AdminRequestForm"
 
 type Tab = "rooms" | "avatars" | "settings"
 
@@ -13,6 +14,7 @@ export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [hasAccess, setHasAccess] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>("rooms")
 
   useEffect(() => {
@@ -32,13 +34,29 @@ export default function AdminPage() {
     }
 
     if (status === "authenticated" && session?.user) {
-      if (!session.user.twitchLogin && !session.user.isMainAdmin) {
-        setIsLoading(false)
-        return
-      }
-      setIsLoading(false)
+      // Проверяем доступ через API
+      checkAdminAccess()
     }
   }, [session, status, router])
+
+  const checkAdminAccess = async () => {
+    try {
+      const response = await fetch("/api/check-admin-access")
+      if (response.ok) {
+        const data = await response.json()
+        console.log("[Admin Access Check]", data)
+        setHasAccess(data.hasAccess || false)
+      } else {
+        console.log("[Admin Access Check] Failed:", response.status)
+        setHasAccess(false)
+      }
+    } catch (error) {
+      console.error("[Admin Access Check] Error:", error)
+      setHasAccess(false)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   if (status === "loading" || isLoading) {
     return (
@@ -52,12 +70,15 @@ export default function AdminPage() {
     return null
   }
 
-  if (!session?.user?.twitchLogin && !session?.user?.isMainAdmin) {
+  if (!hasAccess && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background-2">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Доступ запрещен</h1>
-          <p>У вас нет прав доступа к административной панели.</p>
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold mb-4">Доступ запрещен</h1>
+            <p className="text-gray-600">У вас нет прав доступа к административной панели.</p>
+          </div>
+          <AdminRequestForm />
         </div>
       </div>
     )
