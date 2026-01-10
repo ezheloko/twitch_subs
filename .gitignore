@@ -41,3 +41,11 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# uploaded files
+/public/uploads/avatar/*
+/public/uploads/background/*
+/public/uploads/furniture/*
+!/public/uploads/avatar/.gitkeep
+!/public/uploads/background/.gitkeep
+!/public/uploads/furniture/.gitkeep

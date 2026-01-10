@@ -1,0 +1,781 @@
+# 📦 Полная инструкция по развертыванию проекта на продакшн-сервере
+
+## 📋 Содержание
+
+1. [Требования](#требования)
+2. [Подготовка сервера](#подготовка-сервера)
+3. [Установка зависимостей системы](#установка-зависимостей-системы)
+4. [Клонирование проекта](#клонирование-проекта)
+5. [Настройка базы данных PostgreSQL](#настройка-базы-данных-postgresql)
+6. [Настройка переменных окружения](#настройка-переменных-окружения)
+7. [Настройка Twitch OAuth](#настройка-twitch-oauth)
+8. [Установка зависимостей проекта](#установка-зависимостей-проекта)
+9. [Инициализация базы данных](#инициализация-базы-данных)
+10. [Сборка проекта](#сборка-проекта)
+11. [Настройка Nginx](#настройка-nginx)
+12. [Настройка SSL (Let's Encrypt)](#настройка-ssl-lets-encrypt)
+13. [Запуск через PM2](#запуск-через-pm2)
+14. [Создание главного администратора](#создание-главного-администратора)
+15. [Проверка работы](#проверка-работы)
+16. [Обновление проекта](#обновление-проекта)
+17. [Решение проблем](#решение-проблем)
+
+---
+
+## 🖥️ Требования
+
+- VPS сервер с Ubuntu 20.04+ или Debian 11+
+- Минимум 2GB RAM, 20GB диска
+- Root доступ к серверу
+- Доменное имя (опционально, но рекомендуется)
+- Twitch Developer Account
+
+---
+
+## 🚀 Подготовка сервера
+
+### Шаг 1: Подключение к серверу
+
+```bash
+ssh root@ваш-ip-адрес
+# или
+ssh root@ваш-домен.com
+```
+
+### Шаг 2: Обновление системы
+
+```bash
+apt update && apt upgrade -y
+```
+
+### Шаг 3: Установка базовых утилит
+
+```bash
+apt install -y curl wget git build-essential
+```
+
+---
+
+## 📦 Установка зависимостей системы
+
+### Шаг 1: Установка Node.js 20.x
+
+```bash
+# Установка Node.js через NodeSource
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
+
+# Проверка версии
+node --version  # Должно быть v20.x.x
+npm --version   # Должно быть 10.x.x
+```
+
+### Шаг 2: Установка PostgreSQL
+
+```bash
+# Установка PostgreSQL
+apt install -y postgresql postgresql-contrib
+
+# Запуск PostgreSQL
+systemctl start postgresql
+systemctl enable postgresql
+
+# Проверка статуса
+systemctl status postgresql
+```
+
+### Шаг 3: Установка Nginx
+
+```bash
+# Установка Nginx
+apt install -y nginx
+
+# Запуск Nginx
+systemctl start nginx
+systemctl enable nginx
+
+# Проверка статуса
+systemctl status nginx
+```
+
+### Шаг 4: Установка PM2
+
+```bash
+# Установка PM2 глобально
+npm install -g pm2
+
+# Настройка автозапуска PM2
+pm2 startup systemd
+# Выполните команду, которую выведет PM2 (обычно что-то вроде: sudo env PATH=...)
+```
+
+### Шаг 5: Установка Certbot (для SSL)
+
+```bash
+apt install -y certbot python3-certbot-nginx
+```
+
+---
+
+## 📥 Клонирование проекта
+
+### Шаг 1: Переход в домашнюю директорию
+
+```bash
+cd /root
+```
+
+### Шаг 2: Клонирование репозитория
+
+```bash
+git clone https://github.com/ezheloko/twitch_subs.git
+cd twitch_subs
+```
+
+**Если репозиторий приватный**, используйте SSH:
+```bash
+# Сначала настройте SSH ключ на сервере
+ssh-keygen -t ed25519 -C "your_email@example.com"
+cat ~/.ssh/id_ed25519.pub
+# Добавьте этот ключ в GitHub Settings > SSH and GPG keys
+
+# Затем клонируйте через SSH
+git clone git@github.com:ezheloko/twitch_subs.git
+cd twitch_subs
+```
+
+---
+
+## 🗄️ Настройка базы данных PostgreSQL
+
+### Шаг 1: Создание базы данных и пользователя
+
+```bash
+# Переключение на пользователя postgres
+sudo -u postgres psql
+
+# В консоли PostgreSQL выполните:
+CREATE DATABASE twitch_subscribers;
+CREATE USER twitch_user WITH PASSWORD 'ваш-надежный-пароль';
+GRANT ALL PRIVILEGES ON DATABASE twitch_subscribers TO twitch_user;
+ALTER USER twitch_user CREATEDB;
+\q
+```
+
+**Важно:** Замените `'ваш-надежный-пароль'` на надежный пароль (минимум 16 символов, буквы, цифры, символы).
+
+### Шаг 2: Проверка подключения
+
+```bash
+# Проверка подключения
+sudo -u postgres psql -d twitch_subscribers -c "SELECT version();"
+```
+
+---
+
+## ⚙️ Настройка переменных окружения
+
+### Шаг 1: Создание файла .env
+
+```bash
+cd /root/twitch_subs
+cp .env.example .env  # Если есть пример файла
+# или
+nano .env  # Создать новый файл
+```
+
+### Шаг 2: Заполнение переменных окружения
+
+Откройте файл `.env` и заполните следующие переменные:
+
+```env
+# База данных PostgreSQL
+DATABASE_URL="postgresql://twitch_user:ваш-надежный-пароль@localhost:5432/twitch_subscribers?schema=public"
+
+# NextAuth.js
+NEXTAUTH_URL="https://ваш-домен.com"
+NEXTAUTH_SECRET="сгенерируйте-случайную-строку-минимум-32-символа"
+
+# Twitch OAuth (получите на https://dev.twitch.tv/console/apps)
+TWITCH_CLIENT_ID="ваш-twitch-client-id"
+TWITCH_CLIENT_SECRET="ваш-twitch-client-secret"
+
+# Node.js окружение
+NODE_ENV="production"
+```
+
+**Как получить NEXTAUTH_SECRET:**
+```bash
+openssl rand -base64 32
+```
+
+**Как получить Twitch OAuth credentials:**
+1. Перейдите на https://dev.twitch.tv/console/apps
+2. Нажмите "Register Your Application"
+3. Заполните:
+   - Name: любое имя (например, "Twitch Subs")
+   - OAuth Redirect URLs: `https://ваш-домен.com/api/auth/callback/twitch`
+   - Category: Website Integration
+4. Нажмите "Create"
+5. Скопируйте Client ID и создайте Client Secret
+
+### Шаг 3: Сохранение файла
+
+В nano: `Ctrl+O` (сохранить), `Enter`, `Ctrl+X` (выйти)
+
+---
+
+## 🔐 Настройка Twitch OAuth
+
+### Шаг 1: Регистрация приложения на Twitch
+
+1. Перейдите на https://dev.twitch.tv/console/apps
+2. Войдите в свой Twitch аккаунт
+3. Нажмите "Register Your Application"
+4. Заполните форму:
+   - **Name:** Twitch Subscribers (или любое другое имя)
+   - **OAuth Redirect URLs:** 
+     - Для разработки: `http://localhost:3000/api/auth/callback/twitch`
+     - Для продакшн: `https://ваш-домен.com/api/auth/callback/twitch`
+   - **Category:** Website Integration
+5. Нажмите "Create"
+6. Скопируйте **Client ID**
+7. Нажмите "New Secret" и скопируйте **Client Secret**
+
+### Шаг 2: Добавление credentials в .env
+
+Добавьте полученные значения в файл `.env`:
+```env
+TWITCH_CLIENT_ID="ваш-client-id"
+TWITCH_CLIENT_SECRET="ваш-client-secret"
+```
+
+---
+
+## 📚 Установка зависимостей проекта
+
+### Шаг 1: Установка npm пакетов
+
+```bash
+cd /root/twitch_subs
+npm install
+```
+
+Это может занять несколько минут. Дождитесь завершения.
+
+### Шаг 2: Проверка установки
+
+```bash
+npm list --depth=0
+```
+
+---
+
+## 🗃️ Инициализация базы данных
+
+### Шаг 1: Генерация Prisma Client
+
+```bash
+npm run db:generate
+```
+
+### Шаг 2: Применение схемы базы данных
+
+```bash
+npm run db:push
+```
+
+Это создаст все необходимые таблицы в базе данных.
+
+### Шаг 3: Проверка создания таблиц
+
+```bash
+sudo -u postgres psql -d twitch_subscribers -c "\dt"
+```
+
+Должны быть видны таблицы: User, Room, Avatar, Furniture, AvatarBase, StreamSettings, AdminRequest.
+
+---
+
+## 🏗️ Сборка проекта
+
+### Шаг 1: Сборка Next.js приложения
+
+```bash
+npm run build
+```
+
+Это может занять 2-5 минут. Дождитесь завершения без ошибок.
+
+### Шаг 2: Проверка сборки
+
+```bash
+# Проверьте, что папка .next создана
+ls -la .next
+```
+
+---
+
+## 🌐 Настройка Nginx
+
+### Шаг 1: Создание конфигурации Nginx
+
+```bash
+nano /etc/nginx/sites-available/twitch-subs
+```
+
+### Шаг 2: Добавление конфигурации
+
+Вставьте следующую конфигурацию (замените `ваш-домен.com` на ваш домен или IP):
+
+```nginx
+server {
+    listen 80;
+    server_name ваш-домен.com;
+
+    # Максимальный размер загружаемых файлов (50MB)
+    client_max_body_size 50M;
+
+    # Проксирование на Next.js приложение
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Статические файлы (загрузки)
+    location /uploads/ {
+        alias /root/twitch_subs/public/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Favicon и другие статические файлы
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+        proxy_pass http://localhost:3000;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+### Шаг 3: Сохранение и активация конфигурации
+
+```bash
+# Создание символической ссылки
+ln -s /etc/nginx/sites-available/twitch-subs /etc/nginx/sites-enabled/
+
+# Удаление дефолтной конфигурации (если нужно)
+rm /etc/nginx/sites-enabled/default
+
+# Проверка конфигурации
+nginx -t
+
+# Перезагрузка Nginx
+systemctl reload nginx
+```
+
+### Шаг 4: Создание директории для загрузок
+
+```bash
+mkdir -p /root/twitch_subs/public/uploads/{background,item,avatar}
+chmod -R 755 /root/twitch_subs/public/uploads
+```
+
+---
+
+## 🔒 Настройка SSL (Let's Encrypt)
+
+**Важно:** SSL работает только с доменным именем, не с IP-адресом.
+
+### Шаг 1: Получение SSL сертификата
+
+```bash
+certbot --nginx -d ваш-домен.com
+```
+
+Следуйте инструкциям:
+- Введите email для уведомлений
+- Согласитесь с условиями (A)
+- Выберите, перенаправлять ли HTTP на HTTPS (рекомендуется: 2)
+
+### Шаг 2: Автоматическое обновление сертификата
+
+```bash
+# Проверка автоматического обновления
+certbot renew --dry-run
+```
+
+Certbot автоматически настроит обновление через cron.
+
+### Шаг 3: Обновление NEXTAUTH_URL в .env
+
+После получения SSL обновите `.env`:
+```env
+NEXTAUTH_URL="https://ваш-домен.com"
+```
+
+И перезапустите приложение (см. раздел "Запуск через PM2").
+
+---
+
+## 🚀 Запуск через PM2
+
+### Шаг 1: Запуск приложения
+
+```bash
+cd /root/twitch_subs
+pm2 start npm --name "twitch-subs" -- start
+```
+
+### Шаг 2: Сохранение конфигурации PM2
+
+```bash
+pm2 save
+```
+
+Это сохранит список процессов для автозапуска после перезагрузки сервера.
+
+### Шаг 3: Проверка статуса
+
+```bash
+pm2 status
+pm2 logs twitch-subs --lines 50
+```
+
+### Шаг 4: Просмотр логов
+
+```bash
+# Все логи
+pm2 logs twitch-subs
+
+# Только ошибки
+pm2 logs twitch-subs --err
+
+# Последние 100 строк
+pm2 logs twitch-subs --lines 100
+```
+
+---
+
+## 👤 Создание главного администратора
+
+### Шаг 1: Первый вход через Twitch
+
+1. Откройте в браузере: `https://ваш-домен.com/admin`
+2. Войдите через Twitch
+3. Первый пользователь автоматически станет главным администратором
+
+### Шаг 2: Проверка статуса в базе данных
+
+```bash
+sudo -u postgres psql -d twitch_subscribers -c "SELECT email, \"twitchLogin\", \"isMainAdmin\" FROM \"User\";"
+```
+
+Должен быть виден ваш пользователь с `isMainAdmin: true`.
+
+### Шаг 3: Если нужно установить главного админа вручную
+
+```bash
+cd /root/twitch_subs
+node scripts/fix-admin-direct.js
+```
+
+Или через SQL:
+```bash
+sudo -u postgres psql -d twitch_subscribers
+```
+
+```sql
+UPDATE "User" 
+SET "isMainAdmin" = true 
+WHERE LOWER(email) = LOWER('ваш-email@example.com');
+```
+
+---
+
+## ✅ Проверка работы
+
+### Шаг 1: Проверка доступности сайта
+
+```bash
+# Проверка через curl
+curl -I https://ваш-домен.com
+
+# Должен вернуть HTTP 200 или 302
+```
+
+### Шаг 2: Проверка админ-панели
+
+1. Откройте `https://ваш-домен.com/admin`
+2. Войдите через Twitch
+3. Проверьте, что видите админ-панель
+
+### Шаг 3: Проверка API
+
+```bash
+curl https://ваш-домен.com/api/check-admin-access
+```
+
+### Шаг 4: Проверка загрузки файлов
+
+1. В админ-панели попробуйте загрузить изображение
+2. Проверьте, что файл появился в `/root/twitch_subs/public/uploads/`
+
+---
+
+## 🔄 Обновление проекта
+
+### Шаг 1: Остановка приложения
+
+```bash
+pm2 stop twitch-subs
+```
+
+### Шаг 2: Получение обновлений
+
+```bash
+cd /root/twitch_subs
+git pull origin main
+```
+
+### Шаг 3: Установка новых зависимостей (если есть)
+
+```bash
+npm install
+```
+
+### Шаг 4: Применение миграций базы данных (если есть)
+
+```bash
+npm run db:push
+npm run db:generate
+```
+
+### Шаг 5: Пересборка проекта
+
+```bash
+npm run build
+```
+
+### Шаг 6: Перезапуск приложения
+
+```bash
+pm2 restart twitch-subs
+pm2 save
+```
+
+### Шаг 7: Проверка логов
+
+```bash
+pm2 logs twitch-subs --lines 50
+```
+
+---
+
+## 🐛 Решение проблем
+
+### Проблема: Приложение не запускается
+
+**Решение:**
+```bash
+# Проверьте логи
+pm2 logs twitch-subs --err
+
+# Проверьте, что порт 3000 свободен
+netstat -tulpn | grep 3000
+
+# Проверьте переменные окружения
+cd /root/twitch_subs
+cat .env
+
+# Попробуйте запустить вручную для отладки
+npm start
+```
+
+### Проблема: Ошибка подключения к базе данных
+
+**Решение:**
+```bash
+# Проверьте, что PostgreSQL запущен
+systemctl status postgresql
+
+# Проверьте подключение
+sudo -u postgres psql -d twitch_subscribers -c "SELECT 1;"
+
+# Проверьте DATABASE_URL в .env
+cat .env | grep DATABASE_URL
+```
+
+### Проблема: 502 Bad Gateway
+
+**Решение:**
+```bash
+# Проверьте, что приложение запущено
+pm2 status
+
+# Проверьте логи приложения
+pm2 logs twitch-subs
+
+# Проверьте логи Nginx
+tail -f /var/log/nginx/error.log
+
+# Проверьте конфигурацию Nginx
+nginx -t
+```
+
+### Проблема: Файлы не загружаются (403 Forbidden)
+
+**Решение:**
+```bash
+# Проверьте права доступа
+ls -la /root/twitch_subs/public/uploads
+
+# Установите правильные права
+chmod -R 755 /root/twitch_subs/public/uploads
+chown -R root:root /root/twitch_subs/public/uploads
+```
+
+### Проблема: Ошибка аутентификации Twitch
+
+**Решение:**
+1. Проверьте `TWITCH_CLIENT_ID` и `TWITCH_CLIENT_SECRET` в `.env`
+2. Проверьте Redirect URL в настройках Twitch приложения:
+   - Должен быть: `https://ваш-домен.com/api/auth/callback/twitch`
+3. Проверьте `NEXTAUTH_URL` в `.env`:
+   - Должен быть: `https://ваш-домен.com`
+4. Перезапустите приложение:
+```bash
+pm2 restart twitch-subs
+```
+
+### Проблема: Недостаточно памяти при сборке
+
+**Решение:**
+```bash
+# Увеличьте swap
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+# Или увеличьте лимит памяти Node.js
+export NODE_OPTIONS="--max-old-space-size=2048"
+npm run build
+```
+
+### Проблема: Модальные окна перекрываются аватарами
+
+**Решение:**
+Это уже исправлено в коде. Убедитесь, что используете последнюю версию:
+```bash
+git pull origin main
+npm run build
+pm2 restart twitch-subs
+```
+
+---
+
+## 📝 Полезные команды
+
+### PM2 команды
+
+```bash
+# Статус всех процессов
+pm2 status
+
+# Логи приложения
+pm2 logs twitch-subs
+
+# Перезапуск
+pm2 restart twitch-subs
+
+# Остановка
+pm2 stop twitch-subs
+
+# Удаление из PM2
+pm2 delete twitch-subs
+```
+
+### Nginx команды
+
+```bash
+# Проверка конфигурации
+nginx -t
+
+# Перезагрузка
+systemctl reload nginx
+
+# Перезапуск
+systemctl restart nginx
+
+# Логи ошибок
+tail -f /var/log/nginx/error.log
+
+# Логи доступа
+tail -f /var/log/nginx/access.log
+```
+
+### База данных команды
+
+```bash
+# Подключение к базе
+sudo -u postgres psql -d twitch_subscribers
+
+# Резервная копия
+sudo -u postgres pg_dump twitch_subscribers > backup.sql
+
+# Восстановление из резервной копии
+sudo -u postgres psql -d twitch_subscribers < backup.sql
+```
+
+### Git команды
+
+```bash
+# Проверка статуса
+git status
+
+# Получение обновлений
+git pull origin main
+
+# Просмотр изменений
+git diff
+
+# Откат изменений (ОСТОРОЖНО!)
+git reset --hard HEAD
+```
+
+---
+
+## 🎉 Готово!
+
+Теперь ваш проект развернут на продакшн-сервере! 
+
+**Следующие шаги:**
+1. Откройте `https://ваш-домен.com/admin`
+2. Войдите через Twitch
+3. Начните использовать админ-панель
+
+**Важные напоминания:**
+- Регулярно делайте резервные копии базы данных
+- Следите за логами приложения
+- Обновляйте зависимости: `npm audit fix`
+- Проверяйте статус SSL сертификата: `certbot certificates`
+
+**Поддержка:**
+Если возникли проблемы, проверьте логи:
+```bash
+pm2 logs twitch-subs --lines 100
+tail -f /var/log/nginx/error.log
+```
+
+---
+
+**Последнее обновление:** 2026-01-10
