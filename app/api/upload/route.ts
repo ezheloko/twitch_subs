@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const bytes = await file.arrayBuffer()
-    let buffer = Buffer.from(bytes)
+    let buffer: Buffer = Buffer.from(bytes)
 
     // Создаем директорию если её нет
     const uploadDir = join(process.cwd(), "public", "uploads", type)
@@ -52,18 +52,18 @@ export async function POST(request: NextRequest) {
 
       if (currentWidth > targetWidth) {
         // Уменьшаем до 1920px, сохраняя пропорции
-        buffer = await image
+        buffer = (await image
           .resize(targetWidth, null, {
             fit: "inside",
             withoutEnlargement: true,
           })
-          .toBuffer()
+          .toBuffer()) as Buffer
       } else if (currentWidth < targetWidth) {
         // Добавляем черные поля слева и справа
         const paddingLeft = Math.floor((targetWidth - currentWidth) / 2)
         const paddingRight = targetWidth - currentWidth - paddingLeft
 
-        buffer = await image
+        buffer = (await image
           .extend({
             top: 0,
             bottom: 0,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
             right: paddingRight,
             background: { r: 0, g: 0, b: 0 }, // Черный цвет
           })
-          .toBuffer()
+          .toBuffer()) as Buffer
       }
       // Если currentWidth === targetWidth, оставляем как есть
     }
