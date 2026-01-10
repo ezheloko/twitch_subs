@@ -26,7 +26,9 @@ export default function CanvasDroppableWrapper({
   return (
     <div
       ref={(node) => {
-        canvasRef.current = node
+        if (node) {
+          canvasRef.current = node
+        }
         setNodeRef(node)
       }}
       className="relative mx-auto canvas-background"
