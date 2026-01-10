@@ -15,7 +15,7 @@ export default function CanvasDroppableWrapper({
   room,
   children,
 }: {
-  canvasRef: RefObject<HTMLDivElement>
+  canvasRef: RefObject<HTMLDivElement | null>
   room: Room
   children?: React.ReactNode
 }) {
