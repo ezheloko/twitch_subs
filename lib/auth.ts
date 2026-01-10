@@ -31,24 +31,57 @@ export const authOptions: NextAuthOptions = {
 
           const isFirstUser = adminCount === 0;
 
-          // Создаем или обновляем пользователя
-          await prisma.user.upsert({
-            where: { email: user.email || `${twitchLogin}@twitch.local` },
-            update: {
-              twitchLogin: twitchLogin,
-              name: user.name,
-              image: user.image,
-              // Если это первый пользователь, делаем его главным админом
-              ...(isFirstUser ? { isMainAdmin: true } : {}),
-            },
-            create: {
-              email: user.email || `${twitchLogin}@twitch.local`,
-              name: user.name,
-              image: user.image,
-              twitchLogin: twitchLogin,
-              isMainAdmin: isFirstUser,
-            },
+          // Сначала ищем пользователя по twitchLogin (если был добавлен админом)
+          const existingByTwitchLogin = await prisma.user.findUnique({
+            where: { twitchLogin: twitchLogin.toLowerCase() },
           });
+
+          // Если пользователь найден по twitchLogin, обновляем его данные
+          if (existingByTwitchLogin) {
+            await prisma.user.update({
+              where: { id: existingByTwitchLogin.id },
+              data: {
+                email: user.email || existingByTwitchLogin.email,
+                name: user.name || existingByTwitchLogin.name,
+                image: user.image || existingByTwitchLogin.image,
+                twitchLogin: twitchLogin.toLowerCase(),
+                // Сохраняем статус админа, если он был установлен
+                isMainAdmin: existingByTwitchLogin.isMainAdmin || isFirstUser,
+              },
+            });
+            return true;
+          }
+
+          // Если пользователь не найден по twitchLogin, ищем по email
+          const email = user.email || `${twitchLogin}@twitch.local`;
+          const existingByEmail = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          if (existingByEmail) {
+            // Обновляем существующего пользователя
+            await prisma.user.update({
+              where: { id: existingByEmail.id },
+              data: {
+                twitchLogin: twitchLogin.toLowerCase(),
+                name: user.name || existingByEmail.name,
+                image: user.image || existingByEmail.image,
+                // Если это первый пользователь, делаем его главным админом
+                ...(isFirstUser ? { isMainAdmin: true } : {}),
+              },
+            });
+          } else {
+            // Создаем нового пользователя
+            await prisma.user.create({
+              data: {
+                email,
+                name: user.name,
+                image: user.image,
+                twitchLogin: twitchLogin.toLowerCase(),
+                isMainAdmin: isFirstUser,
+              },
+            });
+          }
 
           return true;
         } catch (error) {

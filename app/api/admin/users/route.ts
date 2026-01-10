@@ -65,9 +65,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Нормализуем twitchLogin в нижний регистр
+    const normalizedTwitchLogin = twitchLogin.toLowerCase().trim()
+
     // Ищем пользователя по twitchLogin или создаем нового
     const existingUser = await prisma.user.findUnique({
-      where: { twitchLogin },
+      where: { twitchLogin: normalizedTwitchLogin },
     })
 
     if (existingUser) {
@@ -78,9 +81,9 @@ export async function POST(request: NextRequest) {
     // Создаем нового пользователя с twitchLogin
     const newUser = await prisma.user.create({
       data: {
-        email: `${twitchLogin}@twitch.local`,
-        twitchLogin,
-        name: twitchLogin,
+        email: `${normalizedTwitchLogin}@twitch.local`,
+        twitchLogin: normalizedTwitchLogin,
+        name: normalizedTwitchLogin,
         isMainAdmin: false,
       },
     })
