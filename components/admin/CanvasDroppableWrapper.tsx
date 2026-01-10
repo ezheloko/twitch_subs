@@ -1,7 +1,7 @@
 "use client"
 
 import { useDroppable } from "@dnd-kit/core"
-import { RefObject } from "react"
+import { RefObject, useState, useEffect } from "react"
 
 interface Room {
   id: string
@@ -23,6 +23,16 @@ export default function CanvasDroppableWrapper({
     id: "canvas",
   })
 
+  const [imageSize, setImageSize] = useState({ width: 1920, height: 1080 })
+
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => {
+      setImageSize({ width: img.naturalWidth, height: img.naturalHeight })
+    }
+    img.src = room.backgroundUrl
+  }, [room.backgroundUrl])
+
   return (
     <div
       ref={(node) => {
@@ -33,13 +43,14 @@ export default function CanvasDroppableWrapper({
       }}
       className="relative mx-auto canvas-background"
       style={{
-        width: "1920px",
-        height: "1080px",
-        minWidth: "1920px",
-        minHeight: "1080px",
+        width: `${imageSize.width}px`,
+        height: `${imageSize.height}px`,
+        minWidth: `${imageSize.width}px`,
+        minHeight: `${imageSize.height}px`,
         backgroundImage: `url(${room.backgroundUrl})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        backgroundSize: "contain",
+        backgroundPosition: "top left",
+        backgroundRepeat: "no-repeat",
         backgroundColor: isOver ? "rgba(134, 79, 254, 0.1)" : "transparent",
       }}
     >

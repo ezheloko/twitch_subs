@@ -42,6 +42,7 @@ interface PublicRoomViewProps {
   onNavigate?: (direction: "prev" | "next") => void
   hasPrev?: boolean
   hasNext?: boolean
+  showNames?: boolean
 }
 
 export default function PublicRoomView({
@@ -49,12 +50,14 @@ export default function PublicRoomView({
   onNavigate,
   hasPrev = false,
   hasNext = false,
+  showNames = false,
 }: PublicRoomViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [backgroundSize, setBackgroundSize] = useState({ width: 1920, height: 1080 })
 
   // Сортируем все элементы по layerIndex
   const allElements = [
@@ -139,25 +142,38 @@ export default function PublicRoomView({
       }}
       onMouseDown={handleMouseDown}
     >
-      {/* Фон комнаты - во всю ширину экрана с сохранением пропорций 1920:1080 */}
+      {/* Фон комнаты - в натуральном размере */}
       <div
         ref={contentRef}
         className="relative"
         style={{
-          width: "100vw",
-          height: "56.25vw", // 1080/1920 * 100vw для сохранения пропорций
-          minWidth: "1920px",
-          minHeight: "1080px",
           transform: `translate(${position.x}px, ${position.y}px)`,
           transition: isDragging ? "none" : "transform 0.1s ease-out",
+          display: "inline-block",
         }}
       >
         <img
           src={room.backgroundUrl}
           alt={room.title}
-          className="w-full h-full object-cover"
-          style={{ display: "block", width: "100%", height: "100%" }}
+          style={{ 
+            display: "block", 
+            width: "auto", 
+            height: "auto",
+            maxWidth: "none",
+            maxHeight: "none"
+          }}
           draggable={false}
+          onLoad={(e) => {
+            // Обновляем размер контейнера и сохраняем размер фона для позиционирования элементов
+            const img = e.currentTarget
+            const width = img.naturalWidth
+            const height = img.naturalHeight
+            setBackgroundSize({ width, height })
+            if (contentRef.current) {
+              contentRef.current.style.width = `${width}px`
+              contentRef.current.style.height = `${height}px`
+            }
+          }}
         />
 
         {/* Предметы интерьера и аватары */}
@@ -169,18 +185,23 @@ export default function PublicRoomView({
                   key={element.id}
                   style={{
                     position: "absolute",
-                    left: `${(element.x / 1920) * 100}%`,
-                    top: `${(element.y / 1080) * 100}%`,
-                    width: `${(element.width / 1920) * 100}%`,
-                    height: `${(element.height / 1080) * 100}%`,
-                    zIndex: element.layerIndex,
+                    left: `${(element.x / 1920) * backgroundSize.width}px`,
+                    top: `${(element.y / 1080) * backgroundSize.height}px`,
+                    width: `${(element.width / 1920) * backgroundSize.width}px`,
+                    height: `${(element.height / 1080) * backgroundSize.height}px`,
+                    zIndex: element.layerIndex + 100, // Общая система слоев с аватарами
                     pointerEvents: "none",
                   }}
                 >
                   <img
                     src={element.imageUrl}
                     alt="Furniture"
-                    className="w-full h-full object-contain"
+                    style={{
+                      width: `${(element.width / 1920) * backgroundSize.width}px`,
+                      height: `${(element.height / 1080) * backgroundSize.height}px`,
+                      objectFit: "none",
+                      display: "block",
+                    }}
                     draggable={false}
                   />
                 </div>
@@ -194,11 +215,11 @@ export default function PublicRoomView({
                   key={avatar.id}
                   style={{
                     position: "absolute",
-                    left: `${(avatar.x / 1920) * 100}%`,
-                    top: `${(avatar.y / 1080) * 100}%`,
-                    width: `${(avatar.width / 1920) * 100}%`,
-                    height: `${(avatar.height / 1080) * 100}%`,
-                    zIndex: avatar.layerIndex,
+                    left: `${(avatar.x / 1920) * backgroundSize.width}px`,
+                    top: `${(avatar.y / 1080) * backgroundSize.height}px`,
+                    width: `${(avatar.width / 1920) * backgroundSize.width}px`,
+                    height: `${(avatar.height / 1080) * backgroundSize.height}px`,
+                    zIndex: avatar.layerIndex + 100, // Общая система слоев с предметами интерьера
                     pointerEvents: "auto",
                   }}
                   className="group"
@@ -211,7 +232,12 @@ export default function PublicRoomView({
                   />
 
                   {/* Имя пользователя с иконкой Twitch */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm text-white p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div 
+                    className={`absolute top-0 left-0 right-0 bg-black/70 backdrop-blur-sm text-white p-2 rounded-t-lg transition-opacity ${
+                      showNames ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    }`}
+                    style={{ zIndex: 1000 }}
+                  >
                     <a
                       href={avatar.twitchUrl}
                       target="_blank"

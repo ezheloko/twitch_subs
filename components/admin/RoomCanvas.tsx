@@ -166,7 +166,8 @@ export default function RoomCanvas({
             break
           case "ArrowDown":
             e.preventDefault()
-            newY = Math.min(1080 - (selectedFurniture.height || 200), selectedFurniture.y + 1)
+            const canvasHeight = canvasRef.current?.offsetHeight || 1080
+            newY = Math.min(canvasHeight - (selectedFurniture.height || 200), selectedFurniture.y + 1)
             moved = true
             break
           case "ArrowLeft":
@@ -176,7 +177,8 @@ export default function RoomCanvas({
             break
           case "ArrowRight":
             e.preventDefault()
-            newX = Math.min(1920 - (selectedFurniture.width || 200), selectedFurniture.x + 1)
+            const canvasWidth = canvasRef.current?.offsetWidth || 1920
+            newX = Math.min(canvasWidth - (selectedFurniture.width || 200), selectedFurniture.x + 1)
             moved = true
             break
         }
@@ -234,11 +236,13 @@ export default function RoomCanvas({
       y = activeElement.y + event.delta.y
     }
 
-    // Ограничиваем границами canvas (оригинальный размер 1920x1080)
+    // Ограничиваем границами canvas (динамический размер на основе фона)
+    const canvasWidth = canvasRef.current?.offsetWidth || 1920
+    const canvasHeight = canvasRef.current?.offsetHeight || 1080
     const elementWidth = activeElement.width || 200
     const elementHeight = activeElement.height || 200
-    x = Math.max(0, Math.min(x, 1920 - elementWidth))
-    y = Math.max(0, Math.min(y, 1080 - elementHeight))
+    x = Math.max(0, Math.min(x, canvasWidth - elementWidth))
+    y = Math.max(0, Math.min(y, canvasHeight - elementHeight))
 
     // Сохраняем isLocked при обновлении позиции
     const currentFurniture = furniture.find((f) => f.id === activeElement.id)

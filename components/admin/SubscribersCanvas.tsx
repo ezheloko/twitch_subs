@@ -164,7 +164,8 @@ export default function SubscribersCanvas({
             break
           case "ArrowDown":
             e.preventDefault()
-            newY = Math.min(1080 - (selectedAvatar.height || 150), selectedAvatar.y + 1)
+            const canvasHeight = canvasRef.current?.offsetHeight || 1080
+            newY = Math.min(canvasHeight - (selectedAvatar.height || 150), selectedAvatar.y + 1)
             moved = true
             break
           case "ArrowLeft":
@@ -174,7 +175,8 @@ export default function SubscribersCanvas({
             break
           case "ArrowRight":
             e.preventDefault()
-            newX = Math.min(1920 - (selectedAvatar.width || 150), selectedAvatar.x + 1)
+            const canvasWidth = canvasRef.current?.offsetWidth || 1920
+            newX = Math.min(canvasWidth - (selectedAvatar.width || 150), selectedAvatar.x + 1)
             moved = true
             break
         }
@@ -228,8 +230,10 @@ export default function SubscribersCanvas({
       y = activeElement.y + event.delta.y
     }
 
-    x = Math.max(0, Math.min(x, 1920 - (activeElement.width || 200)))
-    y = Math.max(0, Math.min(y, 1080 - (activeElement.height || 200)))
+    const canvasWidth = canvasRef.current?.offsetWidth || 1920
+    const canvasHeight = canvasRef.current?.offsetHeight || 1080
+    x = Math.max(0, Math.min(x, canvasWidth - (activeElement.width || 200)))
+    y = Math.max(0, Math.min(y, canvasHeight - (activeElement.height || 200)))
 
     if (x !== activeElement.x || y !== activeElement.y) {
       setAvatars((prev) =>
@@ -293,61 +297,71 @@ export default function SubscribersCanvas({
             }}
           >
             <CanvasDroppableWrapper canvasRef={canvasRef} room={room}>
-              {/* Предметы интерьера (только для визуализации, без возможности редактирования) */}
-              {furniture.map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    position: "absolute",
-                    left: `${item.x}px`,
-                    top: `${item.y}px`,
-                    width: `${item.width}px`,
-                    height: `${item.height}px`,
-                    zIndex: item.layerIndex,
-                    pointerEvents: "none", // Нельзя взаимодействовать с предметами интерьера
-                  }}
-                >
-                  <img
-                    src={item.imageUrl}
-                    alt="Furniture"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              ))}
-
-              {/* Аватары */}
-              {avatars.map((avatar) => (
-                <DraggableAvatar
-                  key={avatar.id}
-                  avatar={avatar}
-                  disabled={selectedAvatarId !== null && selectedAvatarId !== avatar.id}
-                  onLayerChange={(newLayer) => handleLayerChange(avatar.id, newLayer)}
-                  onUpdate={(updates) => updateAvatar(avatar.id, updates)}
-                  onDelete={async () => {
-                    if (confirm("Удалить этого подписчика?")) {
-                      try {
-                        const response = await fetch(`/api/avatars/${avatar.id}`, { method: "DELETE" })
-                        if (response.ok) {
-                          await fetchRoomData()
-                          setSelectedAvatarId(null)
-                        } else {
-                          alert("Ошибка при удалении подписчика")
+              {/* Все элементы (предметы интерьера и аватары) рендерятся вместе, отсортированные по layerIndex */}
+              {allElements.map((element) => {
+                if (element.type === "furniture") {
+                  return (
+                    <div
+                      key={element.id}
+                      style={{
+                        position: "absolute",
+                        left: `${element.x}px`,
+                        top: `${element.y}px`,
+                        width: `${element.width}px`,
+                        height: `${element.height}px`,
+                        zIndex: element.layerIndex + 100, // Общая система слоев с аватарами
+                        pointerEvents: "none", // Нельзя взаимодействовать с предметами интерьера
+                      }}
+                    >
+                      <img
+                        src={element.imageUrl}
+                        alt="Furniture"
+                        style={{
+                          width: `${element.width}px`,
+                          height: `${element.height}px`,
+                          objectFit: "none",
+                          display: "block",
+                        }}
+                      />
+                    </div>
+                  )
+                } else {
+                  // Это аватар
+                  const avatar = element as Avatar
+                  return (
+                    <DraggableAvatar
+                      key={avatar.id}
+                      avatar={avatar}
+                      disabled={selectedAvatarId !== null && selectedAvatarId !== avatar.id}
+                      onLayerChange={(newLayer) => handleLayerChange(avatar.id, newLayer)}
+                      onUpdate={(updates) => updateAvatar(avatar.id, updates)}
+                      onDelete={async () => {
+                        if (confirm("Удалить этого подписчика?")) {
+                          try {
+                            const response = await fetch(`/api/avatars/${avatar.id}`, { method: "DELETE" })
+                            if (response.ok) {
+                              await fetchRoomData()
+                              setSelectedAvatarId(null)
+                            } else {
+                              alert("Ошибка при удалении подписчика")
+                            }
+                          } catch (error) {
+                            console.error("Error deleting avatar:", error)
+                            alert("Ошибка при удалении подписчика")
+                          }
                         }
-                      } catch (error) {
-                        console.error("Error deleting avatar:", error)
-                        alert("Ошибка при удалении подписчика")
-                      }
-                    }
-                  }}
-                  selectedId={selectedAvatarId}
-                  onSelect={(id) => {
-                    if (selectedAvatarId && selectedAvatarId !== id && id !== null) {
-                      return
-                    }
-                    setSelectedAvatarId(id)
-                  }}
-                />
-              ))}
+                      }}
+                      selectedId={selectedAvatarId}
+                      onSelect={(id) => {
+                        if (selectedAvatarId && selectedAvatarId !== id && id !== null) {
+                          return
+                        }
+                        setSelectedAvatarId(id)
+                      }}
+                    />
+                  )
+                }
+              })}
 
               <DragOverlay>
                 {activeId ? (
@@ -383,6 +397,13 @@ export default function SubscribersCanvas({
               roomId={room.id}
               onAvatarAdded={fetchRoomData}
               existingAvatars={allAvatars}
+              onAvatarLayerChange={async (id, newLayer) => {
+                await handleLayerChange(id, newLayer)
+                // Обновляем allAvatars для отображения в панели
+                setAllAvatars((prev) =>
+                  prev.map((a) => (a.id === id ? { ...a, layerIndex: newLayer } : a))
+                )
+              }}
             />
           </div>
         </DndContext>

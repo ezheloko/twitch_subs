@@ -194,16 +194,36 @@ function FurnitureThumbnail({
     
     setIsAdding(true)
     try {
+      // Получаем реальные размеры изображения
+      const img = new Image()
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = () => reject(new Error("Failed to load image"))
+        img.src = furnitureBase.imageUrl
+      })
+
+      const naturalWidth = img.naturalWidth
+      const naturalHeight = img.naturalHeight
+
+      // Получаем размер canvas для центрирования
+      // Используем дефолтные значения, если canvas еще не загружен
+      const canvasWidth = 1920 // Будет обновлено динамически в CanvasDroppableWrapper
+      const canvasHeight = 1080
+      
+      // Центрируем предмет на canvas
+      const x = (canvasWidth / 2) - (naturalWidth / 2)
+      const y = (canvasHeight / 2) - (naturalHeight / 2)
+
       const response = await fetch("/api/furniture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           roomId,
           imageUrl: furnitureBase.imageUrl,
-          x: 860, // Центр canvas по X (1920 / 2 - 100)
-          y: 440, // Центр canvas по Y (1080 / 2 - 100)
-          width: 200,
-          height: 200,
+          x: Math.max(0, x), // Убеждаемся, что координаты не отрицательные
+          y: Math.max(0, y),
+          width: naturalWidth,
+          height: naturalHeight,
           layerIndex: 1,
         }),
       })

@@ -40,6 +40,7 @@ export default function HomePage() {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0)
   const [viewMode, setViewMode] = useState<"room" | "tiles">("room")
   const [isLoading, setIsLoading] = useState(true)
+  const [showNames, setShowNames] = useState(false)
 
   useEffect(() => {
     fetchRooms()
@@ -148,6 +149,47 @@ export default function HomePage() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden" style={{ margin: 0, padding: 0 }}>
+      {/* Кнопка переключения отображения имен */}
+      <button
+        onClick={() => setShowNames(!showNames)}
+        className="absolute top-0 z-50 bg-black/70 backdrop-blur-sm hover:bg-white transition-colors border-0 group"
+        style={{ 
+          position: "absolute", 
+          top: 0, 
+          right: "44px", 
+          zIndex: 1000, 
+          borderRadius: "0 0 0 8px", 
+          margin: 0, 
+          padding: "12px",
+          cursor: "pointer"
+        }}
+        title={showNames ? "Скрыть имена" : "Показать имена"}
+      >
+        <div className="relative">
+          {/* Иконка текста/имени */}
+          <svg 
+            width="20" 
+            height="20" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            className={`text-white group-hover:text-black transition-colors ${showNames ? "opacity-100" : "opacity-70"}`}
+          >
+            <path d="M4 20h16" />
+            <path d="M6 16l6-12 6 12" />
+            <path d="M8 14h8" />
+          </svg>
+          
+          {/* Всплывающая подсказка */}
+          <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 bg-black/90 text-white text-sm rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+            {showNames ? "Скрыть имена" : "Показать имена"}
+          </div>
+        </div>
+      </button>
+
       {/* Кнопка переключения в режим плитки */}
       <button
         onClick={() => setViewMode("tiles")}
@@ -211,6 +253,7 @@ export default function HomePage() {
         onNavigate={handleNavigate}
         hasPrev={hasPrev}
         hasNext={hasNext}
+        showNames={showNames}
       />
     </div>
   )

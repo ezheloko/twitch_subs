@@ -62,7 +62,7 @@ export default function DraggableAvatar({
     top: `${avatar.y}px`,
     width: `${avatar.width}px`,
     height: `${avatar.height}px`,
-    zIndex: avatar.layerIndex + 100 + (isSelected ? 1000 : 0), // Bring selected item to front
+    zIndex: isSelected ? 10000 : avatar.layerIndex + 100, // Когда выбран, поднимаем весь контейнер наверх
     opacity: isDragging ? 0 : 1, // Hide original when dragging, show only DragOverlay
     cursor: disabled || isLocked ? "not-allowed" : "grab",
   }
@@ -171,14 +171,18 @@ export default function DraggableAvatar({
       />
 
       {/* Overlay с именем */}
-      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white p-1 text-xs text-center rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
+      <div 
+        className="absolute top-0 left-0 right-0 bg-black bg-opacity-60 text-white p-1 text-xs text-center rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ zIndex: 1000 }} // Поверх аватара
+      >
         {avatar.username}
       </div>
 
       {/* Delete button */}
       {!disabled && (
         <button
-          className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-50"
+          className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ zIndex: 10000 }} // Всегда поверх всех элементов
           onClick={(e) => {
             e.stopPropagation()
             if (confirm(`Удалить подписчика "${avatar.username}"?`)) {
@@ -193,7 +197,8 @@ export default function DraggableAvatar({
       {/* Control panel - показывается при клике */}
       {isSelected && (
         <div
-          className="absolute inset-0 flex items-center justify-center z-50"
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ zIndex: 10000 }} // Всегда поверх всех элементов
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex gap-4 items-center">
@@ -238,6 +243,7 @@ export default function DraggableAvatar({
       {!disabled && !isLocked && !isSelected && (
         <div
           className="absolute bottom-0 right-0 w-4 h-4 bg-primary-600 cursor-se-resize opacity-0 group-hover:opacity-100"
+          style={{ zIndex: 10000 }} // Всегда поверх всех элементов
           onMouseDown={handleResizeStart}
         />
       )}

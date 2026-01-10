@@ -53,7 +53,7 @@ export default function DraggableFurniture({
     top: `${furniture.y}px`,
     width: `${furniture.width}px`,
     height: `${furniture.height}px`,
-    zIndex: furniture.layerIndex + 100,
+    zIndex: isSelected ? 10000 : furniture.layerIndex + 100, // Когда выбран, поднимаем весь контейнер наверх
     opacity: isDragging ? 0 : 1,
     cursor: disabled || isLocked ? "not-allowed" : "move",
   }
@@ -97,13 +97,19 @@ export default function DraggableFurniture({
       <img
         src={furniture.imageUrl}
         alt="Furniture"
-        className="w-full h-full object-contain"
+        style={{
+          width: `${furniture.width}px`,
+          height: `${furniture.height}px`,
+          objectFit: "none",
+          display: "block",
+        }}
       />
 
       {/* Delete button */}
       {!disabled && (
         <button
-          className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-50"
+          className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ zIndex: 10000 }} // Всегда поверх всех элементов
           onClick={(e) => {
             e.stopPropagation()
             if (confirm("Удалить этот предмет интерьера?")) {
@@ -118,7 +124,8 @@ export default function DraggableFurniture({
       {/* Control panel - показывается при клике */}
       {isSelected && (
         <div
-          className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{ zIndex: 10000 }} // Всегда поверх всех элементов
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex gap-4 items-center pointer-events-auto">

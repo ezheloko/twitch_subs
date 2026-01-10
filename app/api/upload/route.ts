@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth-helpers"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { existsSync } from "fs"
+import sharp from "sharp"
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    let buffer = Buffer.from(bytes)
 
     // Создаем директорию если её нет
     const uploadDir = join(process.cwd(), "public", "uploads", type)
@@ -40,6 +41,40 @@ export async function POST(request: NextRequest) {
     const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
     const filename = `${timestamp}-${originalName}`
     const filepath = join(uploadDir, filename)
+
+    // Обрабатываем фоны: нормализуем ширину до 1920px
+    if (type === "background") {
+      const image = sharp(buffer)
+      const metadata = await image.metadata()
+      const currentWidth = metadata.width || 0
+      const currentHeight = metadata.height || 0
+      const targetWidth = 1920
+
+      if (currentWidth > targetWidth) {
+        // Уменьшаем до 1920px, сохраняя пропорции
+        buffer = await image
+          .resize(targetWidth, null, {
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .toBuffer()
+      } else if (currentWidth < targetWidth) {
+        // Добавляем черные поля слева и справа
+        const paddingLeft = Math.floor((targetWidth - currentWidth) / 2)
+        const paddingRight = targetWidth - currentWidth - paddingLeft
+
+        buffer = await image
+          .extend({
+            top: 0,
+            bottom: 0,
+            left: paddingLeft,
+            right: paddingRight,
+            background: { r: 0, g: 0, b: 0 }, // Черный цвет
+          })
+          .toBuffer()
+      }
+      // Если currentWidth === targetWidth, оставляем как есть
+    }
 
     await writeFile(filepath, buffer)
 

@@ -216,7 +216,7 @@ export default function RoomEditor() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Фон (1920x1080)</label>
+              <label className="block text-sm font-medium mb-2">Фон</label>
               <input
                 type="file"
                 accept="image/*"

@@ -29,10 +29,12 @@ export default function AvatarPanel({
   roomId,
   onAvatarAdded,
   existingAvatars,
+  onAvatarLayerChange,
 }: {
   roomId: string
   onAvatarAdded: () => void
   existingAvatars: Avatar[]
+  onAvatarLayerChange?: (id: string, newLayer: number) => void
 }) {
   const [showModal, setShowModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -243,8 +245,37 @@ export default function AvatarPanel({
                       ✕
                     </button>
                   </div>
-                  <div className="text-xs text-center truncate" title={avatar.username}>
-                    {avatar.username}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-center flex-1 truncate" title={avatar.username}>
+                      {avatar.username}
+                    </p>
+                    {onAvatarLayerChange && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAvatarLayerChange(avatar.id, avatar.layerIndex - 1)
+                          }}
+                          className="btn btn-sm bg-gray-600 hover:bg-gray-700 text-white px-2"
+                          title="Уменьшить слой"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAvatarLayerChange(avatar.id, avatar.layerIndex + 1)
+                          }}
+                          className="btn btn-sm bg-gray-600 hover:bg-gray-700 text-white px-2"
+                          title="Увеличить слой"
+                        >
+                          ↑
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-center text-gray-500 mt-1">
+                    Слой: {avatar.layerIndex}
                   </div>
                   {!avatar.isActive && (
                     <button
