@@ -326,8 +326,8 @@ export default function AvatarPanel({
 
       {/* Модальное окно */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-          <div className="bg-background-1 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[50000]">
+          <div className="bg-background-1 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto relative z-[50001]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-xl">Добавить нового подписчика</h3>
               <button
@@ -519,8 +519,8 @@ function EditAvatarModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-      <div className="bg-background-1 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[50000]">
+      <div className="bg-background-1 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto relative z-[50001]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-xl">Редактировать подписчика</h3>
           <button
