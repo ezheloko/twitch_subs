@@ -185,10 +185,10 @@ export default function PublicRoomView({
                   key={element.id}
                   style={{
                     position: "absolute",
-                    left: `${(element.x / 1920) * backgroundSize.width}px`,
-                    top: `${(element.y / 1080) * backgroundSize.height}px`,
-                    width: `${(element.width / 1920) * backgroundSize.width}px`,
-                    height: `${(element.height / 1080) * backgroundSize.height}px`,
+                    left: `${element.x}px`,
+                    top: `${element.y}px`,
+                    width: `${element.width}px`,
+                    height: `${element.height}px`,
                     zIndex: element.layerIndex + 100, // Общая система слоев с аватарами
                     pointerEvents: "none",
                   }}
@@ -197,8 +197,8 @@ export default function PublicRoomView({
                     src={element.imageUrl}
                     alt="Furniture"
                     style={{
-                      width: `${(element.width / 1920) * backgroundSize.width}px`,
-                      height: `${(element.height / 1080) * backgroundSize.height}px`,
+                      width: `${element.width}px`,
+                      height: `${element.height}px`,
                       objectFit: "none",
                       display: "block",
                     }}
@@ -215,10 +215,10 @@ export default function PublicRoomView({
                   key={avatar.id}
                   style={{
                     position: "absolute",
-                    left: `${(avatar.x / 1920) * backgroundSize.width}px`,
-                    top: `${(avatar.y / 1080) * backgroundSize.height}px`,
-                    width: `${(avatar.width / 1920) * backgroundSize.width}px`,
-                    height: `${(avatar.height / 1080) * backgroundSize.height}px`,
+                    left: `${avatar.x}px`,
+                    top: `${avatar.y}px`,
+                    width: `${avatar.width}px`,
+                    height: `${avatar.height}px`,
                     zIndex: avatar.layerIndex + 100, // Общая система слоев с предметами интерьера
                     pointerEvents: "auto",
                   }}

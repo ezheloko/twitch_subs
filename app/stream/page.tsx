@@ -217,6 +217,7 @@ export default function StreamPage() {
           onNavigate={undefined}
           hasPrev={false}
           hasNext={false}
+          showNames={true}
         />
       </div>
     </div>

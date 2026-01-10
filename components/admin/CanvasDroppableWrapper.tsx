@@ -41,14 +41,14 @@ export default function CanvasDroppableWrapper({
         }
         setNodeRef(node)
       }}
-      className="relative mx-auto canvas-background"
+      className="relative canvas-background"
       style={{
         width: `${imageSize.width}px`,
         height: `${imageSize.height}px`,
         minWidth: `${imageSize.width}px`,
         minHeight: `${imageSize.height}px`,
         backgroundImage: `url(${room.backgroundUrl})`,
-        backgroundSize: "contain",
+        backgroundSize: `${imageSize.width}px ${imageSize.height}px`,
         backgroundPosition: "top left",
         backgroundRepeat: "no-repeat",
         backgroundColor: isOver ? "rgba(134, 79, 254, 0.1)" : "transparent",
