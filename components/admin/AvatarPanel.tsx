@@ -22,6 +22,7 @@ interface Avatar {
   subscriptionDate?: string | Date
   reactivationCount?: number
   createdAt?: string | Date
+  userpicUrl?: string | null
 }
 
 export default function AvatarPanel({
