@@ -134,6 +134,11 @@ export default function PublicRoomView({
 
   // Обработка начала перетаскивания (touch)
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Если два или больше пальцев - это масштабирование, не блокируем
+    if (e.touches.length > 1) {
+      return
+    }
+    
     const target = e.target as HTMLElement
     if (
       target.closest("a") ||
@@ -164,6 +169,11 @@ export default function PublicRoomView({
   // Обработка движения touch при перетаскивании
   const handleTouchMove = (e: TouchEvent) => {
     if (!isDragging) return
+    // Если два или больше пальцев - это масштабирование, не блокируем
+    if (e.touches.length > 1) {
+      setIsDragging(false)
+      return
+    }
     e.preventDefault()
 
     const touch = e.touches[0]
@@ -235,7 +245,7 @@ export default function PublicRoomView({
         overflow: "hidden",
         cursor: isDragging ? "grabbing" : "grab",
         userSelect: "none",
-        touchAction: "none", // Отключаем стандартные жесты браузера для touch
+        touchAction: isMobile ? "pan-x pan-y pinch-zoom" : "none", // На мобильных разрешаем масштабирование, на десктопе отключаем
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
@@ -344,7 +354,14 @@ export default function PublicRoomView({
                     pointerEvents: "auto",
                   }}
                   className="group"
-                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => {
+                    // На мобильных не блокируем стандартные жесты (pinch-zoom)
+                    // Блокируем только если это один палец и мы хотим предотвратить drag
+                    if (isMobile && e.touches.length > 1) {
+                      return // Разрешаем масштабирование
+                    }
+                    e.stopPropagation()
+                  }}
                 >
                   <img
                     src={avatar.imageUrl}
