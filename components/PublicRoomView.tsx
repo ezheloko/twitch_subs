@@ -82,6 +82,22 @@ export default function PublicRoomView({
     return () => window.removeEventListener('resize', checkMobile)
   }, [backgroundSize.width, backgroundSize.height])
 
+  // Центрируем по вертикали при загрузке, если есть вертикальный скролл
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || backgroundSize.height === 0) return
+
+    const containerHeight = container.clientHeight
+    const scaledHeight = isMobile ? backgroundSize.height * scale : backgroundSize.height
+
+    // Если высота картинки больше высоты контейнера (есть вертикальный скролл)
+    if (scaledHeight > containerHeight) {
+      // Вычисляем позицию, чтобы центр картинки был по центру экрана
+      const centerY = (containerHeight - scaledHeight) / 2
+      setPosition(prev => ({ ...prev, y: centerY }))
+    }
+  }, [backgroundSize.height, scale, isMobile])
+
   // Сортируем все элементы по layerIndex
   const allElements = [
     ...room.furniture.map((f) => ({ ...f, type: "furniture" as const })),
@@ -371,13 +387,14 @@ export default function PublicRoomView({
 
         {/* Навигация стрелками (появляется при наведении на края) */}
         <div
-          className="absolute left-0 top-0 bottom-0 w-1/4 flex items-center justify-start pl-4 cursor-pointer opacity-0 hover:opacity-100 transition-opacity z-40"
+          className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-4 cursor-pointer opacity-0 hover:opacity-100 transition-opacity z-40"
           onClick={(e) => {
             e.stopPropagation()
             hasPrev && onNavigate?.("prev")
           }}
           onMouseDown={(e) => e.stopPropagation()}
           style={{
+            width: "12.5%", // 1/8 ширины экрана (в два раза уже, чем было 1/4)
             background: hasPrev
               ? "linear-gradient(to right, rgba(0,0,0,0.3), transparent)"
               : "none",
@@ -404,13 +421,14 @@ export default function PublicRoomView({
         </div>
 
         <div
-          className="absolute right-0 top-0 bottom-0 w-1/4 flex items-center justify-end pr-4 cursor-pointer opacity-0 hover:opacity-100 transition-opacity z-40"
+          className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-4 cursor-pointer opacity-0 hover:opacity-100 transition-opacity z-40"
           onClick={(e) => {
             e.stopPropagation()
             hasNext && onNavigate?.("next")
           }}
           onMouseDown={(e) => e.stopPropagation()}
           style={{
+            width: "12.5%", // 1/8 ширины экрана (в два раза уже, чем было 1/4)
             background: hasNext
               ? "linear-gradient(to left, rgba(0,0,0,0.3), transparent)"
               : "none",

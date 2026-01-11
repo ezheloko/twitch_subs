@@ -40,7 +40,7 @@ export default function HomePage() {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0)
   const [viewMode, setViewMode] = useState<"room" | "tiles">("room")
   const [isLoading, setIsLoading] = useState(true)
-  const [showNames, setShowNames] = useState(false)
+  const [showNames, setShowNames] = useState(true)
 
   useEffect(() => {
     fetchRooms()
