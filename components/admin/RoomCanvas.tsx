@@ -278,10 +278,22 @@ export default function RoomCanvas({
     .sort((a, b) => a.layerIndex - b.layerIndex)
 
   return (
-    <div className="h-screen flex flex-col bg-background-2">
+    <div 
+      className="h-screen flex flex-col bg-background-2" 
+      style={{ 
+        width: "100vw", 
+        margin: 0, 
+        padding: 0,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}
+    >
       {/* Header */}
       <div className="bg-background-1 border-b border-stroke-1 p-4">
-        <div className="flex items-center justify-between">
+        <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4 flex-wrap">
             <button
               onClick={onBack}
@@ -294,7 +306,7 @@ export default function RoomCanvas({
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col" style={{ margin: 0, padding: 0, overflow: "hidden" }}>
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
@@ -303,7 +315,14 @@ export default function RoomCanvas({
         >
           {/* Canvas */}
           <div 
-            className="flex-1 relative overflow-auto bg-gray-100 flex items-center justify-center"
+            className="relative bg-gray-100"
+            style={{
+              width: "100%",
+              height: "800px",
+              margin: 0,
+              padding: 0,
+              overflow: "auto",
+            }}
             onClick={(e) => {
               // Сбрасываем выбор только если клик был по самому canvas, а не по элементу
               if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.canvas-background')) {
@@ -381,7 +400,8 @@ export default function RoomCanvas({
 
           {/* Control Panel */}
           <div className="bg-background-1 border-t border-stroke-1 overflow-y-auto flex-shrink-0 max-h-64">
-            <FurniturePanel
+            <div className="container mx-auto px-4">
+              <FurniturePanel
               roomId={room.id}
               onFurnitureAdded={fetchRoomData}
               existingFurniture={furniture}
@@ -413,6 +433,7 @@ export default function RoomCanvas({
                 await handleLayerChange(id, newLayer)
               }}
             />
+            </div>
           </div>
         </DndContext>
       </div>

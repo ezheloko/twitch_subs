@@ -194,11 +194,11 @@ export default function AvatarPanel({
         </div>
 
         {/* Список размещенных аватаров */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {existingAvatars.length === 0 ? (
             <p className="text-sm text-gray-500 mb-2">Нет добавленных подписчиков</p>
           ) : (
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-1.5">
               {existingAvatars.map((avatar) => (
                 <div 
                   key={avatar.id} 
@@ -212,7 +212,7 @@ export default function AvatarPanel({
                     console.log("State should be updated now")
                   }}
                 >
-                  <div className="w-full h-20 bg-background-1 rounded mb-1 flex items-center justify-center overflow-hidden relative">
+                  <div className="w-full h-16 bg-background-1 rounded mb-1 flex items-center justify-center overflow-hidden relative">
                     <img
                       src={avatar.imageUrl}
                       alt={avatar.username}
@@ -245,18 +245,18 @@ export default function AvatarPanel({
                       ✕
                     </button>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-1">
                     <p className="text-xs text-center flex-1 truncate" title={avatar.username}>
                       {avatar.username}
                     </p>
                     {onAvatarLayerChange && (
-                      <div className="flex gap-1">
+                      <div className="flex gap-0.5">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             onAvatarLayerChange(avatar.id, avatar.layerIndex - 1)
                           }}
-                          className="btn btn-sm bg-gray-600 hover:bg-gray-700 text-white px-2"
+                          className="btn btn-xs bg-gray-600 hover:bg-gray-700 text-white px-1.5 py-0.5 text-[10px]"
                           title="Уменьшить слой"
                         >
                           ↓
@@ -266,7 +266,7 @@ export default function AvatarPanel({
                             e.stopPropagation()
                             onAvatarLayerChange(avatar.id, avatar.layerIndex + 1)
                           }}
-                          className="btn btn-sm bg-gray-600 hover:bg-gray-700 text-white px-2"
+                          className="btn btn-xs bg-gray-600 hover:bg-gray-700 text-white px-1.5 py-0.5 text-[10px]"
                           title="Увеличить слой"
                         >
                           ↑
@@ -274,7 +274,7 @@ export default function AvatarPanel({
                       </div>
                     )}
                   </div>
-                  <div className="text-xs text-center text-gray-500 mt-1">
+                  <div className="text-[10px] text-center text-gray-500 mt-0.5">
                     Слой: {avatar.layerIndex}
                   </div>
                   {!avatar.isActive && (

@@ -264,10 +264,22 @@ export default function SubscribersCanvas({
   ].sort((a, b) => a.layerIndex - b.layerIndex)
 
   return (
-    <div className="h-screen flex flex-col bg-background-2">
+    <div 
+      className="h-screen flex flex-col bg-background-2" 
+      style={{ 
+        width: "100vw", 
+        margin: 0, 
+        padding: 0,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}
+    >
       {/* Header */}
       <div className="bg-background-1 border-b border-stroke-1 p-4">
-        <div className="flex items-center justify-between">
+        <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4 flex-wrap">
             <button
               onClick={onBack}
@@ -280,7 +292,7 @@ export default function SubscribersCanvas({
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col" style={{ margin: 0, padding: 0, overflow: "hidden" }}>
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
@@ -289,7 +301,14 @@ export default function SubscribersCanvas({
         >
           {/* Canvas */}
           <div 
-            className="flex-1 relative overflow-auto bg-gray-100 flex items-center justify-center"
+            className="relative bg-gray-100"
+            style={{
+              width: "100%",
+              height: "800px",
+              margin: 0,
+              padding: 0,
+              overflow: "auto",
+            }}
             onClick={(e) => {
               if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.canvas-background')) {
                 setSelectedAvatarId(null)
@@ -392,8 +411,9 @@ export default function SubscribersCanvas({
           </div>
 
           {/* Control Panel */}
-          <div className="bg-background-1 border-t border-stroke-1 overflow-y-auto flex-shrink-0 max-h-64">
-            <AvatarPanel
+          <div className="bg-background-1 border-t border-stroke-1 flex-shrink-0" style={{ maxHeight: '256px', minHeight: '200px' }}>
+            <div className="container mx-auto px-4">
+              <AvatarPanel
               roomId={room.id}
               onAvatarAdded={fetchRoomData}
               existingAvatars={allAvatars}
@@ -405,6 +425,7 @@ export default function SubscribersCanvas({
                 )
               }}
             />
+            </div>
           </div>
         </DndContext>
       </div>

@@ -58,6 +58,29 @@ export default function PublicRoomView({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [backgroundSize, setBackgroundSize] = useState({ width: 1920, height: 1080 })
+  const [isMobile, setIsMobile] = useState(false)
+  const [scale, setScale] = useState(1)
+
+  // Определяем мобильное устройство и масштаб
+  useEffect(() => {
+    const checkMobile = () => {
+      const width = window.innerWidth
+      const isMobileDevice = width < 1440 // Мобильные устройства < 1440px
+      setIsMobile(isMobileDevice)
+      
+      if (isMobileDevice && backgroundSize.width > 0 && backgroundSize.height > 0) {
+        // На мобильных: масштабируем только по ширине
+        const scaleByWidth = width / backgroundSize.width
+        setScale(scaleByWidth)
+      } else {
+        setScale(1)
+      }
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [backgroundSize.width, backgroundSize.height])
 
   // Сортируем все элементы по layerIndex
   const allElements = [
@@ -65,7 +88,7 @@ export default function PublicRoomView({
     ...room.avatars.map((a) => ({ ...a, type: "avatar" as const })),
   ].sort((a, b) => a.layerIndex - b.layerIndex)
 
-  // Обработка начала перетаскивания
+  // Обработка начала перетаскивания (мышь)
   const handleMouseDown = (e: React.MouseEvent) => {
     // Игнорируем клики по ссылкам, кнопкам и навигационным стрелкам
     const target = e.target as HTMLElement
@@ -84,6 +107,25 @@ export default function PublicRoomView({
     })
   }
 
+  // Обработка начала перетаскивания (touch)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement
+    if (
+      target.closest("a") ||
+      target.closest("button") ||
+      target.closest(".z-40")
+    ) {
+      return
+    }
+    e.preventDefault()
+    const touch = e.touches[0]
+    setIsDragging(true)
+    setDragStart({
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y,
+    })
+  }
+
   // Обработка движения мыши при перетаскивании
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging) return
@@ -91,18 +133,39 @@ export default function PublicRoomView({
     const newX = e.clientX - dragStart.x
     const newY = e.clientY - dragStart.y
 
+    updatePosition(newX, newY)
+  }
+
+  // Обработка движения touch при перетаскивании
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+
+    const touch = e.touches[0]
+    const newX = touch.clientX - dragStart.x
+    const newY = touch.clientY - dragStart.y
+
+    updatePosition(newX, newY)
+  }
+
+  // Общая функция обновления позиции
+  const updatePosition = (newX: number, newY: number) => {
     // Ограничиваем прокрутку границами контента
     const container = containerRef.current
     const content = contentRef.current
     if (container && content) {
       const containerWidth = container.clientWidth
       const containerHeight = container.clientHeight
-      const contentWidth = content.scrollWidth
-      const contentHeight = content.scrollHeight
+      // На мобильных учитываем масштаб
+      const scaledWidth = isMobile ? backgroundSize.width * scale : backgroundSize.width
+      const scaledHeight = isMobile ? backgroundSize.height * scale : backgroundSize.height
+      const contentWidth = isMobile ? scaledWidth : content.scrollWidth
+      const contentHeight = isMobile ? scaledHeight : content.scrollHeight
 
       // Вычисляем границы
       const maxX = 0
       const minX = containerWidth >= contentWidth ? 0 : -(contentWidth - containerWidth)
+
       const maxY = 0
       const minY = containerHeight >= contentHeight ? 0 : -(contentHeight - containerHeight)
 
@@ -118,16 +181,24 @@ export default function PublicRoomView({
     setIsDragging(false)
   }
 
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+  }
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener("mousemove", handleMouseMove)
       window.addEventListener("mouseup", handleMouseUp)
+      window.addEventListener("touchmove", handleTouchMove, { passive: false })
+      window.addEventListener("touchend", handleTouchEnd)
       return () => {
         window.removeEventListener("mousemove", handleMouseMove)
         window.removeEventListener("mouseup", handleMouseUp)
+        window.removeEventListener("touchmove", handleTouchMove)
+        window.removeEventListener("touchend", handleTouchEnd)
       }
     }
-  }, [isDragging, dragStart, position])
+  }, [isDragging, dragStart, position, isMobile, scale])
 
   return (
     <div
@@ -139,15 +210,20 @@ export default function PublicRoomView({
         overflow: "hidden",
         cursor: isDragging ? "grabbing" : "grab",
         userSelect: "none",
+        touchAction: "none", // Отключаем стандартные жесты браузера для touch
       }}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
     >
       {/* Фон комнаты - в натуральном размере */}
       <div
         ref={contentRef}
         className="relative"
         style={{
-          transform: `translate(${position.x}px, ${position.y}px)`,
+          transform: isMobile 
+            ? `translate(${position.x}px, ${position.y}px) scale(${scale})`
+            : `translate(${position.x}px, ${position.y}px)`,
+          transformOrigin: "top left",
           transition: isDragging ? "none" : "transform 0.1s ease-out",
           display: "inline-block",
         }}
@@ -157,8 +233,8 @@ export default function PublicRoomView({
           alt={room.title}
           style={{ 
             display: "block", 
-            width: "auto", 
-            height: "auto",
+            width: scale !== 1 ? `${backgroundSize.width}px` : "auto", 
+            height: scale !== 1 ? `${backgroundSize.height}px` : "auto",
             maxWidth: "none",
             maxHeight: "none"
           }}
@@ -172,6 +248,17 @@ export default function PublicRoomView({
             if (contentRef.current) {
               contentRef.current.style.width = `${width}px`
               contentRef.current.style.height = `${height}px`
+            }
+            
+            // Пересчитываем масштаб после загрузки изображения
+            const screenWidth = window.innerWidth
+            const isMobileDevice = screenWidth < 1440
+            if (isMobileDevice && width > 0 && height > 0) {
+              // На мобильных: масштабируем только по ширине
+              const scaleByWidth = screenWidth / width
+              setScale(scaleByWidth)
+            } else {
+              setScale(1)
             }
           }}
         />
@@ -223,6 +310,7 @@ export default function PublicRoomView({
                     pointerEvents: "auto",
                   }}
                   className="group"
+                  onTouchStart={(e) => e.stopPropagation()}
                 >
                   <img
                     src={avatar.imageUrl}
