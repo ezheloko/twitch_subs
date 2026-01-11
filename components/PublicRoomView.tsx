@@ -68,10 +68,19 @@ export default function PublicRoomView({
       const isMobileDevice = width < 1440 // Мобильные устройства < 1440px
       setIsMobile(isMobileDevice)
       
-      if (isMobileDevice && backgroundSize.width > 0 && backgroundSize.height > 0) {
-        // На мобильных: масштабируем только по ширине
-        const scaleByWidth = width / backgroundSize.width
-        setScale(scaleByWidth)
+      if (backgroundSize.width > 0 && backgroundSize.height > 0) {
+        if (isMobileDevice) {
+          // На мобильных: масштабируем только по ширине
+          const scaleByWidth = width / backgroundSize.width
+          setScale(scaleByWidth)
+        } else if (width > 1920) {
+          // На больших экранах (> 1920px): масштабируем пропорционально по ширине
+          const scaleByWidth = width / backgroundSize.width
+          setScale(scaleByWidth)
+        } else {
+          // На обычных экранах (1440px - 1920px): без масштабирования
+          setScale(1)
+        }
       } else {
         setScale(1)
       }
@@ -88,7 +97,7 @@ export default function PublicRoomView({
     if (!container || backgroundSize.height === 0) return
 
     const containerHeight = container.clientHeight
-    const scaledHeight = isMobile ? backgroundSize.height * scale : backgroundSize.height
+    const scaledHeight = scale !== 1 ? backgroundSize.height * scale : backgroundSize.height
 
     // Если высота картинки больше высоты контейнера (есть вертикальный скролл)
     if (scaledHeight > containerHeight) {
@@ -96,7 +105,7 @@ export default function PublicRoomView({
       const centerY = (containerHeight - scaledHeight) / 2
       setPosition(prev => ({ ...prev, y: centerY }))
     }
-  }, [backgroundSize.height, scale, isMobile])
+  }, [backgroundSize.height, scale])
 
   // Сортируем все элементы по layerIndex
   const allElements = [
@@ -172,11 +181,11 @@ export default function PublicRoomView({
     if (container && content) {
       const containerWidth = container.clientWidth
       const containerHeight = container.clientHeight
-      // На мобильных учитываем масштаб
-      const scaledWidth = isMobile ? backgroundSize.width * scale : backgroundSize.width
-      const scaledHeight = isMobile ? backgroundSize.height * scale : backgroundSize.height
-      const contentWidth = isMobile ? scaledWidth : content.scrollWidth
-      const contentHeight = isMobile ? scaledHeight : content.scrollHeight
+      // Учитываем масштаб, если он применяется (мобильные или большие экраны)
+      const scaledWidth = scale !== 1 ? backgroundSize.width * scale : backgroundSize.width
+      const scaledHeight = scale !== 1 ? backgroundSize.height * scale : backgroundSize.height
+      const contentWidth = scale !== 1 ? scaledWidth : content.scrollWidth
+      const contentHeight = scale !== 1 ? scaledHeight : content.scrollHeight
 
       // Вычисляем границы
       const maxX = 0
@@ -236,7 +245,7 @@ export default function PublicRoomView({
         ref={contentRef}
         className="relative"
         style={{
-          transform: isMobile 
+          transform: scale !== 1
             ? `translate(${position.x}px, ${position.y}px) scale(${scale})`
             : `translate(${position.x}px, ${position.y}px)`,
           transformOrigin: "top left",
@@ -269,10 +278,19 @@ export default function PublicRoomView({
             // Пересчитываем масштаб после загрузки изображения
             const screenWidth = window.innerWidth
             const isMobileDevice = screenWidth < 1440
-            if (isMobileDevice && width > 0 && height > 0) {
-              // На мобильных: масштабируем только по ширине
-              const scaleByWidth = screenWidth / width
-              setScale(scaleByWidth)
+            if (width > 0 && height > 0) {
+              if (isMobileDevice) {
+                // На мобильных: масштабируем только по ширине
+                const scaleByWidth = screenWidth / width
+                setScale(scaleByWidth)
+              } else if (screenWidth > 1920) {
+                // На больших экранах (> 1920px): масштабируем пропорционально по ширине
+                const scaleByWidth = screenWidth / width
+                setScale(scaleByWidth)
+              } else {
+                // На обычных экранах (1440px - 1920px): без масштабирования
+                setScale(1)
+              }
             } else {
               setScale(1)
             }
