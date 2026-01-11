@@ -46,6 +46,7 @@ export default function AdminSettings() {
   const [adminRequests, setAdminRequests] = useState<AdminRequest[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isMainAdmin, setIsMainAdmin] = useState(false)
 
   useEffect(() => {
     fetchSettings()
@@ -59,13 +60,16 @@ export default function AdminSettings() {
       const accessResponse = await fetch("/api/check-admin-access")
       if (accessResponse.ok) {
         const accessData = await accessResponse.json()
-        if (accessData.isMainAdmin) {
+        const mainAdmin = accessData.isMainAdmin === true
+        setIsMainAdmin(mainAdmin)
+        if (mainAdmin) {
           fetchAdminRequests()
           fetchUsers()
         }
       }
     } catch (error) {
       console.error("Error checking admin access:", error)
+      setIsMainAdmin(false)
     }
   }
 
@@ -210,8 +214,6 @@ export default function AdminSettings() {
     return <div className="text-center py-8">Загрузка настроек...</div>
   }
 
-  // Определяем главного админа из сессии или из загруженных данных
-  const isMainAdmin = session?.user?.isMainAdmin || users.some(u => u.id === session?.user?.id && u.isMainAdmin)
   const pendingRequests = adminRequests.filter(r => r.status === "pending")
   const approvedAdmins = users.filter(u => 
     u.isMainAdmin || (u.adminRequest && u.adminRequest.status === "approved")
