@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 
 interface Room {
   id: string
@@ -60,6 +60,7 @@ export default function PublicRoomView({
   const [backgroundSize, setBackgroundSize] = useState({ width: 1920, height: 1080 })
   const [isMobile, setIsMobile] = useState(false)
   const [scale, setScale] = useState(1)
+  const [hoveredAvatarId, setHoveredAvatarId] = useState<string | null>(null)
 
   // Определяем мобильное устройство и масштаб
   useEffect(() => {
@@ -122,6 +123,82 @@ export default function PublicRoomView({
     if (a.type === "avatar" && b.type === "furniture") return -1
     return 0
   })
+
+  // Вычисляем позиции имен аватаров, чтобы они не перекрывались
+  // Имена всегда остаются в пределах своих аватаров
+  const avatarNamePositions = useMemo(() => {
+    const NAME_HEIGHT = 48 // Примерная высота блока с именем (p-2 + контент)
+    const ICON_WIDTH = 24 // Ширина иконки (w-6 = 24px)
+    const PADDING_X = 16 // Горизонтальный padding (p-2 = 8px с каждой стороны = 16px)
+    const CHAR_WIDTH = 8 // Примерная ширина одного символа
+    const MIN_NAME_WIDTH = ICON_WIDTH + PADDING_X + 20 // Минимальная ширина (иконка + отступы + минимум текста)
+    
+    // Функция для оценки ширины полоски с ником
+    const estimateNameWidth = (username: string) => {
+      const textWidth = username.length * CHAR_WIDTH
+      return Math.max(MIN_NAME_WIDTH, ICON_WIDTH + PADDING_X + textWidth)
+    }
+    
+    const positions: Record<string, number> = {}
+    
+    // Сортируем аватары по Y координате (сверху вниз)
+    const sortedAvatars = [...room.avatars].sort((a, b) => a.y - b.y)
+    
+    sortedAvatars.forEach((avatar, index) => {
+      // Начальная позиция - над аватаром, но ближе к нему
+      let nameTop = -NAME_HEIGHT + 20 // Смещаем вниз на 20px, чтобы было ближе к аватару
+      
+      // Оцениваем ширину текущей полоски с ником
+      const currentNameWidth = Math.min(estimateNameWidth(avatar.username), avatar.width)
+      const currentNameCenterX = avatar.x + avatar.width / 2
+      const currentNameLeft = currentNameCenterX - currentNameWidth / 2
+      const currentNameRight = currentNameCenterX + currentNameWidth / 2
+      
+      // Проверяем пересечения с предыдущими аватарами
+      for (let i = 0; i < index; i++) {
+        const prevAvatar = sortedAvatars[i]
+        const prevNameTopRelative = positions[prevAvatar.id] ?? (-NAME_HEIGHT + 20)
+        
+        // Вычисляем абсолютные координаты имен на канвасе по Y
+        const currentNameTopAbsolute = avatar.y + nameTop
+        const currentNameBottomAbsolute = currentNameTopAbsolute + NAME_HEIGHT
+        const prevNameTopAbsolute = prevAvatar.y + prevNameTopRelative
+        const prevNameBottomAbsolute = prevNameTopAbsolute + NAME_HEIGHT
+        
+        // Проверяем пересечение по Y (абсолютные координаты на канвасе)
+        const overlapsY = !(currentNameBottomAbsolute <= prevNameTopAbsolute || currentNameTopAbsolute >= prevNameBottomAbsolute)
+        
+        if (overlapsY) {
+          // Если есть пересечение по Y, проверяем пересечение по X для полосок
+          const prevNameWidth = Math.min(estimateNameWidth(prevAvatar.username), prevAvatar.width)
+          const prevNameCenterX = prevAvatar.x + prevAvatar.width / 2
+          const prevNameLeft = prevNameCenterX - prevNameWidth / 2
+          const prevNameRight = prevNameCenterX + prevNameWidth / 2
+          
+          // Проверяем реальное пересечение полосок по X
+          const overlapsX = !(currentNameRight <= prevNameLeft || currentNameLeft >= prevNameRight)
+          
+          if (overlapsX) {
+            // Если есть реальное пересечение, сдвигаем имя вниз
+            const requiredOffsetAbsolute = prevNameBottomAbsolute - avatar.y + 4 // +4 для небольшого отступа
+            nameTop = Math.max(nameTop, requiredOffsetAbsolute)
+          }
+        }
+      }
+      
+      // Если имя опустилось слишком низко (внутрь аватара), ограничиваем его
+      // Но стараемся оставить его над аватаром, если возможно
+      if (nameTop > 0) {
+        // Если имя залезло внутрь аватара, но есть место над ним, оставляем над ним
+        // Иначе ограничиваем верхней частью аватара
+        nameTop = Math.min(nameTop, 0)
+      }
+      
+      positions[avatar.id] = nameTop
+    })
+    
+    return positions
+  }, [room.avatars])
 
   // Обработка начала перетаскивания (мышь)
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -364,6 +441,8 @@ export default function PublicRoomView({
                     pointerEvents: "auto",
                   }}
                   className="group"
+                  onMouseEnter={() => setHoveredAvatarId(avatar.id)}
+                  onMouseLeave={() => setHoveredAvatarId(null)}
                   onTouchStart={(e) => {
                     // На мобильных не блокируем стандартные жесты (pinch-zoom)
                     // Блокируем только если это один палец и мы хотим предотвратить drag
@@ -379,54 +458,74 @@ export default function PublicRoomView({
                     className="w-full h-full object-contain"
                     draggable={false}
                   />
-
-                  {/* Имя пользователя с иконкой Twitch */}
-                  <div 
-                    className={`absolute top-0 left-0 right-0 bg-black/70 backdrop-blur-sm text-white p-2 rounded-t-lg transition-opacity ${
-                      showNames ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    }`}
-                    style={{ zIndex: 1000 }}
-                  >
-                    <a
-                      href={avatar.twitchUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 hover:text-gray-300 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                      onMouseDown={(e) => e.stopPropagation()}
-                    >
-                      {avatar.userpicUrl ? (
-                        <img
-                          src={avatar.userpicUrl}
-                          alt={avatar.username}
-                          className="w-6 h-6 rounded-full"
-                          onError={(e) => {
-                            // Если userpic не загружается, скрываем его и показываем иконку
-                            e.currentTarget.style.display = "none"
-                            const parent = e.currentTarget.parentElement
-                            if (parent) {
-                              const icon = parent.querySelector("svg")
-                              if (icon) icon.style.display = "block"
-                            }
-                          }}
-                          draggable={false}
-                        />
-                      ) : null}
-                      {!avatar.userpicUrl && (
-                        <svg
-                          className="w-6 h-6"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M11.571 4.714h1.143v2.857h-1.143zm0 4.571h1.143v2.857h-1.143zm-4.571 0h1.143v2.857H7zm-4.571 0h1.143v2.857H2.429zm0-4.571h1.143v2.857H2.429zm4.571 0h1.143v2.857H7zm8.571 0h1.143v2.857h-1.143zm-4.571 0h1.143v2.857h-1.143zm-4.571 9.143h1.143v2.857H7zm-4.571 0h1.143v2.857H2.429zm4.571 0h1.143v2.857h-1.143zm8.571 0h1.143v2.857h-1.143zm-4.571 0h1.143v2.857h-1.143z" />
-                        </svg>
-                      )}
-                      <span className="font-semibold">{avatar.username}</span>
-                    </a>
-                  </div>
                 </div>
               )
             }
+          })}
+        </div>
+
+        {/* Слой с именами пользователей - рендерится поверх всех аватаров */}
+        <div className="absolute inset-0" style={{ zIndex: 10000, pointerEvents: "none" }}>
+          {room.avatars.map((avatar) => {
+            const isHovered = hoveredAvatarId === avatar.id
+            const shouldShow = showNames || isHovered
+            
+            return (
+              <div
+                key={`name-${avatar.id}`}
+                className={`absolute bg-black/70 backdrop-blur-sm text-white p-2 rounded-lg transition-opacity inline-block ${
+                  shouldShow ? "opacity-100" : "opacity-0"
+                }`}
+                style={{
+                  left: `${avatar.x + avatar.width / 2}px`,
+                  top: `${avatar.y + (avatarNamePositions[avatar.id] ?? -28)}px`,
+                  width: "auto",
+                  maxWidth: `${avatar.width}px`,
+                  transform: "translateX(-50%)",
+                  pointerEvents: "auto",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={() => setHoveredAvatarId(avatar.id)}
+                onMouseLeave={() => setHoveredAvatarId(null)}
+              >
+              <a
+                href={avatar.twitchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-gray-300 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {avatar.userpicUrl ? (
+                  <img
+                    src={avatar.userpicUrl}
+                    alt={avatar.username}
+                    className="w-6 h-6 rounded-full"
+                    onError={(e) => {
+                      // Если userpic не загружается, скрываем его и показываем иконку
+                      e.currentTarget.style.display = "none"
+                      const parent = e.currentTarget.parentElement
+                      if (parent) {
+                        const icon = parent.querySelector("svg")
+                        if (icon) icon.style.display = "block"
+                      }
+                    }}
+                    draggable={false}
+                  />
+                ) : null}
+                {!avatar.userpicUrl && (
+                  <svg
+                    className="w-6 h-6"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M11.571 4.714h1.143v2.857h-1.143zm0 4.571h1.143v2.857h-1.143zm-4.571 0h1.143v2.857H7zm-4.571 0h1.143v2.857H2.429zm0-4.571h1.143v2.857H2.429zm4.571 0h1.143v2.857H7zm8.571 0h1.143v2.857h-1.143zm-4.571 0h1.143v2.857h-1.143zm-4.571 9.143h1.143v2.857H7zm-4.571 0h1.143v2.857H2.429zm4.571 0h1.143v2.857h-1.143zm8.571 0h1.143v2.857h-1.143zm-4.571 0h1.143v2.857h-1.143z" />
+                  </svg>
+                )}
+                <span className="font-semibold">{avatar.username}</span>
+              </a>
+            </div>
+            )
           })}
         </div>
       </div>
