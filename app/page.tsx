@@ -129,7 +129,7 @@ export default function HomePage() {
           if (preserveCurrentRoom && prevRooms.length > 0) {
             const currentRoomId = prevRooms[currentRoomIndexRef.current]?.id
             if (currentRoomId) {
-              const newIndex = roomsWithActiveAvatars.findIndex(r => r.id === currentRoomId)
+              const newIndex = roomsWithActiveAvatars.findIndex((r: Room) => r.id === currentRoomId)
               if (newIndex !== -1) {
                 newRoomIndex = newIndex
               }
