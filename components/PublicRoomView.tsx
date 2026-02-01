@@ -438,7 +438,7 @@ export default function PublicRoomView({
                     top: `${avatar.y}px`,
                     width: `${avatar.width}px`,
                     height: `${avatar.height}px`,
-                    zIndex: avatar.layerIndex + 1000, // Выше стрелок навигации (z-50)
+                    zIndex: avatar.layerIndex + 100, // Общая система слоев с предметами интерьера
                     pointerEvents: "auto",
                   }}
                   className="group"
@@ -534,13 +534,13 @@ export default function PublicRoomView({
 
       {/* Навигация стрелками (вынесена из contentRef для корректного отображения) */}
       <div
-        className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-4 z-50"
+        className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-4 z-40"
         style={{
-          width: "12.5%", // 1/8 ширины экрана
+          width: "12.5%", // 1/8 ширины экрана (в два раза уже, чем было 1/4)
           background: hasPrev
             ? "linear-gradient(to right, rgba(0,0,0,0.3), transparent)"
             : "none",
-          pointerEvents: "none", // Вся область не перехватывает события
+          pointerEvents: "none", // Контейнер не перехватывает события
         }}
       >
         {hasPrev && (
@@ -571,13 +571,13 @@ export default function PublicRoomView({
       </div>
 
       <div
-        className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-4 z-50"
+        className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-4 z-40"
         style={{
-          width: "12.5%", // 1/8 ширины экрана
+          width: "12.5%", // 1/8 ширины экрана (в два раза уже, чем было 1/4)
           background: hasNext
             ? "linear-gradient(to left, rgba(0,0,0,0.3), transparent)"
             : "none",
-          pointerEvents: "none", // Вся область не перехватывает события
+          pointerEvents: "none", // Контейнер не перехватывает события
         }}
       >
         {hasNext && (
