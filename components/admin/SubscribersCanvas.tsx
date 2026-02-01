@@ -258,10 +258,20 @@ export default function SubscribersCanvas({
   }
 
   // Сортируем все элементы (аватары и предметы интерьера) по layerIndex для правильного отображения
+  // При одинаковом layerIndex мебель отображается выше подписчиков
   const allElements = [
     ...avatars.map((a) => ({ ...a, type: "avatar" as const })),
     ...furniture.map((f) => ({ ...f, type: "furniture" as const })),
-  ].sort((a, b) => a.layerIndex - b.layerIndex)
+  ].sort((a, b) => {
+    // Сначала сортируем по layerIndex
+    if (a.layerIndex !== b.layerIndex) {
+      return a.layerIndex - b.layerIndex
+    }
+    // При одинаковом layerIndex мебель (furniture) должна быть выше (позже в массиве)
+    if (a.type === "furniture" && b.type === "avatar") return 1
+    if (a.type === "avatar" && b.type === "furniture") return -1
+    return 0
+  })
 
   return (
     <div 
@@ -411,8 +421,8 @@ export default function SubscribersCanvas({
           </div>
 
           {/* Control Panel */}
-          <div className="bg-background-1 border-t border-stroke-1 flex-shrink-0" style={{ maxHeight: '256px', minHeight: '200px' }}>
-            <div className="container mx-auto px-4">
+          <div className="bg-background-1 border-t border-stroke-1 flex-shrink-0" style={{ maxHeight: '256px', minHeight: '200px', height: '256px' }}>
+            <div className="container mx-auto px-4 h-full">
               <AvatarPanel
               roomId={room.id}
               onAvatarAdded={fetchRoomData}

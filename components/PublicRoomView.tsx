@@ -108,10 +108,20 @@ export default function PublicRoomView({
   }, [backgroundSize.height, scale])
 
   // Сортируем все элементы по layerIndex
+  // При одинаковом layerIndex мебель отображается выше подписчиков
   const allElements = [
     ...room.furniture.map((f) => ({ ...f, type: "furniture" as const })),
     ...room.avatars.map((a) => ({ ...a, type: "avatar" as const })),
-  ].sort((a, b) => a.layerIndex - b.layerIndex)
+  ].sort((a, b) => {
+    // Сначала сортируем по layerIndex
+    if (a.layerIndex !== b.layerIndex) {
+      return a.layerIndex - b.layerIndex
+    }
+    // При одинаковом layerIndex мебель (furniture) должна быть выше (позже в массиве)
+    if (a.type === "furniture" && b.type === "avatar") return 1
+    if (a.type === "avatar" && b.type === "furniture") return -1
+    return 0
+  })
 
   // Обработка начала перетаскивания (мышь)
   const handleMouseDown = (e: React.MouseEvent) => {

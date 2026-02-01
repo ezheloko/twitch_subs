@@ -188,17 +188,25 @@ export default function AvatarPanel({
 
   return (
     <>
-      <div className="p-4 space-y-3 h-full flex flex-col">
-        <div className="flex items-center justify-between mb-2">
+      <div className="p-4 h-full flex flex-col" style={{ minHeight: 0 }}>
+        <div className="flex items-center justify-between mb-2 flex-shrink-0">
           <h3 className="font-bold text-lg">Подписчики</h3>
         </div>
 
-        {/* Список размещенных аватаров */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        {/* Кнопка добавления - перемещена наверх */}
+        <button
+          onClick={() => setShowModal(true)}
+          className="btn btn-primary btn-sm w-full mb-3 flex-shrink-0"
+        >
+          <span>+ Добавить нового</span>
+        </button>
+
+        {/* Список размещенных аватаров - с прокруткой */}
+        <div className="flex-1 overflow-y-auto min-h-0" style={{ overflowY: 'auto' }}>
           {existingAvatars.length === 0 ? (
             <p className="text-sm text-gray-500 mb-2">Нет добавленных подписчиков</p>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-1.5">
+            <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-1.5 pb-2">
               {existingAvatars.map((avatar) => (
                 <div 
                   key={avatar.id} 
@@ -314,14 +322,6 @@ export default function AvatarPanel({
             </div>
           )}
         </div>
-
-        {/* Кнопка добавления */}
-        <button
-          onClick={() => setShowModal(true)}
-          className="btn btn-primary btn-sm w-full"
-        >
-          <span>+ Добавить нового</span>
-        </button>
       </div>
 
       {/* Модальное окно */}

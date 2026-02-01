@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import PublicRoomView from "@/components/PublicRoomView"
 import RoomsTilesView from "@/components/RoomsTilesView"
 
@@ -41,12 +41,77 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<"room" | "tiles">("room")
   const [isLoading, setIsLoading] = useState(true)
   const [showNames, setShowNames] = useState(true)
-
+  
+  // Используем ref для хранения текущего индекса, чтобы избежать проблем с замыканиями
+  const currentRoomIndexRef = useRef(0)
+  
+  // Обновляем ref при изменении индекса
   useEffect(() => {
-    fetchRooms()
-  }, [])
+    currentRoomIndexRef.current = currentRoomIndex
+  }, [currentRoomIndex])
 
-  const fetchRooms = async () => {
+  // Функция для сравнения данных комнат (проверка на изменения)
+  const roomsAreEqual = (oldRooms: Room[], newRooms: Room[]): boolean => {
+    if (oldRooms.length !== newRooms.length) return false
+    
+    for (let i = 0; i < oldRooms.length; i++) {
+      const oldRoom = oldRooms[i]
+      const newRoom = newRooms[i]
+      
+      if (oldRoom.id !== newRoom.id) return false
+      if (oldRoom.title !== newRoom.title) return false
+      if (oldRoom.backgroundUrl !== newRoom.backgroundUrl) return false
+      if (oldRoom.avatars.length !== newRoom.avatars.length) return false
+      if (oldRoom.furniture.length !== newRoom.furniture.length) return false
+      
+      // Создаем Map для быстрого поиска аватаров по ID
+      const oldAvatarsMap = new Map(oldRoom.avatars.map(a => [a.id, a]))
+      const newAvatarsMap = new Map(newRoom.avatars.map(a => [a.id, a]))
+      
+      // Проверяем, что все аватары присутствуют и их свойства совпадают
+      if (oldAvatarsMap.size !== newAvatarsMap.size) return false
+      
+      for (const [id, oldAvatar] of oldAvatarsMap) {
+        const newAvatar = newAvatarsMap.get(id)
+        if (!newAvatar) return false
+        
+        // Сравниваем все важные свойства аватара
+        if (oldAvatar.username !== newAvatar.username) return false
+        if (oldAvatar.imageUrl !== newAvatar.imageUrl) return false
+        if (oldAvatar.x !== newAvatar.x) return false
+        if (oldAvatar.y !== newAvatar.y) return false
+        if (oldAvatar.width !== newAvatar.width) return false
+        if (oldAvatar.height !== newAvatar.height) return false
+        if (oldAvatar.layerIndex !== newAvatar.layerIndex) return false
+        if (oldAvatar.twitchUrl !== newAvatar.twitchUrl) return false
+        if (oldAvatar.userpicUrl !== newAvatar.userpicUrl) return false
+      }
+      
+      // Создаем Map для быстрого поиска мебели по ID
+      const oldFurnitureMap = new Map(oldRoom.furniture.map(f => [f.id, f]))
+      const newFurnitureMap = new Map(newRoom.furniture.map(f => [f.id, f]))
+      
+      // Проверяем, что вся мебель присутствует и её свойства совпадают
+      if (oldFurnitureMap.size !== newFurnitureMap.size) return false
+      
+      for (const [id, oldFurniture] of oldFurnitureMap) {
+        const newFurniture = newFurnitureMap.get(id)
+        if (!newFurniture) return false
+        
+        // Сравниваем все важные свойства мебели
+        if (oldFurniture.imageUrl !== newFurniture.imageUrl) return false
+        if (oldFurniture.x !== newFurniture.x) return false
+        if (oldFurniture.y !== newFurniture.y) return false
+        if (oldFurniture.width !== newFurniture.width) return false
+        if (oldFurniture.height !== newFurniture.height) return false
+        if (oldFurniture.layerIndex !== newFurniture.layerIndex) return false
+      }
+    }
+    
+    return true
+  }
+
+  const fetchRooms = useCallback(async (preserveCurrentRoom = false) => {
     try {
       const response = await fetch("/api/rooms")
       if (response.ok) {
@@ -56,17 +121,71 @@ export default function HomePage() {
           ...room,
           avatars: room.avatars.filter((avatar: any) => avatar.isActive !== false),
         }))
-        setRooms(roomsWithActiveAvatars)
-        if (roomsWithActiveAvatars.length > 0) {
-          setCurrentRoomIndex(0)
-        }
+        
+        // Обновляем состояние с сохранением текущей комнаты
+        setRooms((prevRooms) => {
+          // Сохраняем текущий индекс комнаты, если нужно
+          let newRoomIndex = currentRoomIndexRef.current
+          if (preserveCurrentRoom && prevRooms.length > 0) {
+            const currentRoomId = prevRooms[currentRoomIndexRef.current]?.id
+            if (currentRoomId) {
+              const newIndex = roomsWithActiveAvatars.findIndex(r => r.id === currentRoomId)
+              if (newIndex !== -1) {
+                newRoomIndex = newIndex
+              }
+            }
+          } else if (roomsWithActiveAvatars.length > 0 && prevRooms.length === 0) {
+            newRoomIndex = 0
+          }
+          
+          // Обновляем индекс комнаты
+          if (roomsWithActiveAvatars.length > 0) {
+            setCurrentRoomIndex(newRoomIndex)
+          }
+          
+          // Обновляем только если данные изменились
+          if (prevRooms.length === 0 || !roomsAreEqual(prevRooms, roomsWithActiveAvatars)) {
+            return roomsWithActiveAvatars
+          }
+          return prevRooms
+        })
       }
     } catch (error) {
       console.error("Error fetching rooms:", error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, []) // roomsAreEqual не зависит от состояния, поэтому пустой массив
+
+  // Первоначальная загрузка
+  useEffect(() => {
+    fetchRooms()
+  }, [fetchRooms])
+
+  // Автоматическое обновление данных каждые 5 секунд
+  useEffect(() => {
+    // Не обновляем, если страница не видна
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // При возвращении на вкладку сразу обновляем данные
+        fetchRooms(true)
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    // Интервал для периодического обновления (только если вкладка видна)
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchRooms(true)
+      }
+    }, 1000) // Обновление каждую секунду
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
+  }, [fetchRooms])
 
   const handleNavigate = (direction: "prev" | "next") => {
     if (direction === "prev" && currentRoomIndex > 0) {
