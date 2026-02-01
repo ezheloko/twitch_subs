@@ -431,13 +431,14 @@ export default function PublicRoomView({
               return (
                 <div
                   key={avatar.id}
+                  data-avatar="true"
                   style={{
                     position: "absolute",
                     left: `${avatar.x}px`,
                     top: `${avatar.y}px`,
                     width: `${avatar.width}px`,
                     height: `${avatar.height}px`,
-                    zIndex: avatar.layerIndex + 100, // Общая система слоев с предметами интерьера
+                    zIndex: avatar.layerIndex + 1000, // Выше стрелок навигации (z-50)
                     pointerEvents: "auto",
                   }}
                   className="group"
@@ -464,7 +465,7 @@ export default function PublicRoomView({
           })}
         </div>
 
-        {/* Слой с именами пользователей - рендерится поверх всех аватаров */}
+        {/* Слой с именами пользователей - рендерится поверх всех аватаров и стрелок */}
         <div className="absolute inset-0" style={{ zIndex: 10000, pointerEvents: "none" }}>
           {room.avatars.map((avatar) => {
             const isHovered = hoveredAvatarId === avatar.id
@@ -473,6 +474,7 @@ export default function PublicRoomView({
             return (
               <div
                 key={`name-${avatar.id}`}
+                data-avatar-name="true"
                 className={`absolute bg-black/70 backdrop-blur-sm text-white p-2 rounded-lg transition-opacity inline-block ${
                   shouldShow ? "opacity-100" : "opacity-0"
                 }`}
@@ -532,22 +534,25 @@ export default function PublicRoomView({
 
       {/* Навигация стрелками (вынесена из contentRef для корректного отображения) */}
       <div
-        className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-4 cursor-pointer opacity-30 hover:opacity-100 transition-opacity z-50"
-        onClick={(e) => {
-          e.stopPropagation()
-          hasPrev && onNavigate?.("prev")
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
+        className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-4 z-50"
         style={{
           width: "12.5%", // 1/8 ширины экрана
           background: hasPrev
             ? "linear-gradient(to right, rgba(0,0,0,0.3), transparent)"
             : "none",
-          pointerEvents: hasPrev ? "auto" : "none",
+          pointerEvents: "none", // Вся область не перехватывает события
         }}
       >
         {hasPrev && (
-          <div className="bg-black/70 backdrop-blur-sm rounded-full p-4">
+          <div 
+            className="bg-black/70 backdrop-blur-sm rounded-full p-4 cursor-pointer opacity-30 hover:opacity-100 transition-opacity"
+            style={{ pointerEvents: "auto" }} // Только иконка перехватывает события
+            onClick={(e) => {
+              e.stopPropagation()
+              onNavigate?.("prev")
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <svg
               className="w-8 h-8 text-white"
               fill="none"
@@ -566,22 +571,25 @@ export default function PublicRoomView({
       </div>
 
       <div
-        className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-4 cursor-pointer opacity-30 hover:opacity-100 transition-opacity z-50"
-        onClick={(e) => {
-          e.stopPropagation()
-          hasNext && onNavigate?.("next")
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
+        className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-4 z-50"
         style={{
           width: "12.5%", // 1/8 ширины экрана
           background: hasNext
             ? "linear-gradient(to left, rgba(0,0,0,0.3), transparent)"
             : "none",
-          pointerEvents: hasNext ? "auto" : "none",
+          pointerEvents: "none", // Вся область не перехватывает события
         }}
       >
         {hasNext && (
-          <div className="bg-black/70 backdrop-blur-sm rounded-full p-4">
+          <div 
+            className="bg-black/70 backdrop-blur-sm rounded-full p-4 cursor-pointer opacity-30 hover:opacity-100 transition-opacity"
+            style={{ pointerEvents: "auto" }} // Только иконка перехватывает события
+            onClick={(e) => {
+              e.stopPropagation()
+              onNavigate?.("next")
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <svg
               className="w-8 h-8 text-white"
               fill="none"
