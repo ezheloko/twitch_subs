@@ -429,75 +429,75 @@ export default function PublicRoomView({
             }
           })}
         </div>
+      </div>
 
-        {/* Навигация стрелками (появляется при наведении на края) */}
-        <div
-          className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-4 cursor-pointer opacity-0 hover:opacity-100 transition-opacity z-40"
-          onClick={(e) => {
-            e.stopPropagation()
-            hasPrev && onNavigate?.("prev")
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            width: "12.5%", // 1/8 ширины экрана (в два раза уже, чем было 1/4)
-            background: hasPrev
-              ? "linear-gradient(to right, rgba(0,0,0,0.3), transparent)"
-              : "none",
-            pointerEvents: "auto",
-          }}
-        >
-          {hasPrev && (
-            <div className="bg-black/70 backdrop-blur-sm rounded-full p-4">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
+      {/* Навигация стрелками (вынесена из contentRef для корректного отображения) */}
+      <div
+        className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-4 cursor-pointer opacity-30 hover:opacity-100 transition-opacity z-50"
+        onClick={(e) => {
+          e.stopPropagation()
+          hasPrev && onNavigate?.("prev")
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          width: "12.5%", // 1/8 ширины экрана
+          background: hasPrev
+            ? "linear-gradient(to right, rgba(0,0,0,0.3), transparent)"
+            : "none",
+          pointerEvents: hasPrev ? "auto" : "none",
+        }}
+      >
+        {hasPrev && (
+          <div className="bg-black/70 backdrop-blur-sm rounded-full p-4">
+            <svg
+              className="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </div>
+        )}
+      </div>
 
-        <div
-          className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-4 cursor-pointer opacity-0 hover:opacity-100 transition-opacity z-40"
-          onClick={(e) => {
-            e.stopPropagation()
-            hasNext && onNavigate?.("next")
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            width: "12.5%", // 1/8 ширины экрана (в два раза уже, чем было 1/4)
-            background: hasNext
-              ? "linear-gradient(to left, rgba(0,0,0,0.3), transparent)"
-              : "none",
-            pointerEvents: "auto",
-          }}
-        >
-          {hasNext && (
-            <div className="bg-black/70 backdrop-blur-sm rounded-full p-4">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
+      <div
+        className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-4 cursor-pointer opacity-30 hover:opacity-100 transition-opacity z-50"
+        onClick={(e) => {
+          e.stopPropagation()
+          hasNext && onNavigate?.("next")
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          width: "12.5%", // 1/8 ширины экрана
+          background: hasNext
+            ? "linear-gradient(to left, rgba(0,0,0,0.3), transparent)"
+            : "none",
+          pointerEvents: hasNext ? "auto" : "none",
+        }}
+      >
+        {hasNext && (
+          <div className="bg-black/70 backdrop-blur-sm rounded-full p-4">
+            <svg
+              className="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+        )}
       </div>
     </div>
   )
