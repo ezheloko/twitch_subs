@@ -89,8 +89,11 @@ export const authOptions: NextAuthOptions = {
 
           return true;
         } catch (error) {
+          // Если создать/обновить пользователя в БД не удалось, нельзя пускать
+          // его дальше - иначе появится "залогиненная" сессия без записи в БД,
+          // и все проверки прав ниже по цепочке будут молча падать в null.
           console.error("Error in signIn callback:", error);
-          return true;
+          return false;
         }
       }
       return false;
