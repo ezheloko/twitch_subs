@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { avatarBaseCreateSchema, validationError } from "@/lib/validation"
 
 export async function GET() {
   try {
@@ -26,14 +27,11 @@ export async function POST(request: NextRequest) {
     await requireAdmin()
     const body = await request.json()
 
-    const { imageUrl } = body
-
-    if (!imageUrl) {
-      return NextResponse.json(
-        { error: "imageUrl is required" },
-        { status: 400 }
-      )
+    const parsed = avatarBaseCreateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
     }
+    const { imageUrl } = parsed.data
 
     const avatarBase = await prisma.avatarBase.create({
       data: {

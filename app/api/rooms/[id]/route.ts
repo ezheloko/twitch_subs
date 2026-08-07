@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { roomUpdateSchema, validationError } from "@/lib/validation"
+import { deactivateExpiredAvatars } from "@/lib/subscription-lifecycle"
 
 export async function GET(
   request: NextRequest,
@@ -10,22 +12,9 @@ export async function GET(
     const { id } = await params
     
     // Автоматическая деактивация аватаров, у которых прошло более 1 месяца с subscriptionDate
-    const oneMonthAgo = new Date()
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-    
-    await prisma.avatar.updateMany({
-      where: {
-        roomId: id,
-        isActive: true,
-        subscriptionDate: {
-          lt: oneMonthAgo,
-        },
-      },
-      data: {
-        isActive: false,
-      },
-    })
-    
+    await deactivateExpiredAvatars()
+
+
     const room = await prisma.room.findUnique({
       where: { id },
       include: {
@@ -65,7 +54,11 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
-    const { title, backgroundUrl, orderNumber } = body
+    const parsed = roomUpdateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
+    }
+    const { title, backgroundUrl, orderNumber } = parsed.data
 
     // Если меняется orderNumber, нужно поменять местами с другой комнатой
     if (orderNumber !== undefined) {

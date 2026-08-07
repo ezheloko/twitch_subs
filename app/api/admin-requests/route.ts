@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin, getCurrentUser } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { adminRequestCreateSchema, validationError } from "@/lib/validation"
 
 // GET - получить все заявки (только для главного админа) или свою заявку
 export async function GET() {
@@ -107,7 +108,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { message } = body
+    const parsed = adminRequestCreateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
+    }
+    const { message } = parsed.data
 
     // Создаем или обновляем заявку
     const adminRequest = await prisma.adminRequest.upsert({
