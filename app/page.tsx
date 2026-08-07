@@ -162,7 +162,7 @@ export default function HomePage() {
     fetchRooms()
   }, [fetchRooms])
 
-  // Автоматическое обновление данных каждые 5 секунд
+  // Автоматическое обновление данных каждую секунду
   useEffect(() => {
     // Не обновляем, если страница не видна
     const handleVisibilityChange = () => {
@@ -179,7 +179,7 @@ export default function HomePage() {
       if (document.visibilityState === "visible") {
         fetchRooms(true)
       }
-    }, 5000) // Обновление каждые 5 секунд
+    }, 1000) // Обновление каждую секунду
 
     return () => {
       clearInterval(interval)
