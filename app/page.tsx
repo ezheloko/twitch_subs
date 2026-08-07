@@ -179,7 +179,7 @@ export default function HomePage() {
       if (document.visibilityState === "visible") {
         fetchRooms(true)
       }
-    }, 1000) // Обновление каждую секунду
+    }, 5000) // Обновление каждые 5 секунд
 
     return () => {
       clearInterval(interval)
