@@ -189,8 +189,10 @@ export default function AdminSettings() {
     }
   }
 
-  const handleDeleteAdmin = async (id: string) => {
-    if (!confirm("Вы уверены, что хотите удалить этого администратора?")) return
+  // Не удаляет пользователя - только отзывает права администратора
+  // (удаляет его AdminRequest). Сам аккаунт и его данные остаются.
+  const handleRevokeAdmin = async (id: string) => {
+    if (!confirm("Отозвать права администратора у этого пользователя?")) return
 
     try {
       const response = await fetch(`/api/admin/users/${id}`, {
@@ -199,14 +201,14 @@ export default function AdminSettings() {
 
       if (response.ok) {
         await fetchUsers()
-        alert("Администратор успешно удален")
+        alert("Права администратора отозваны")
       } else {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-        alert(errorData.error || `Ошибка при удалении администратора`)
+        alert(errorData.error || `Ошибка при отзыве прав администратора`)
       }
     } catch (error: any) {
-      console.error("Error deleting admin:", error)
-      alert(error.message || "Ошибка при удалении администратора")
+      console.error("Error revoking admin:", error)
+      alert(error.message || "Ошибка при отзыве прав администратора")
     }
   }
 
@@ -428,10 +430,11 @@ export default function AdminSettings() {
                       )}
                       {!user.isMainAdmin && (
                         <button
-                          onClick={() => handleDeleteAdmin(user.id)}
+                          onClick={() => handleRevokeAdmin(user.id)}
                           className="btn btn-sm bg-red-600 border-red-700 text-white hover:bg-red-700"
+                          title="Отозвать права администратора (аккаунт не удаляется)"
                         >
-                          Удалить
+                          Отозвать права
                         </button>
                       )}
                     </div>

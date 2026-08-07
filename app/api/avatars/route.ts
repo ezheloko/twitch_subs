@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { avatarCreateSchema, validationError } from "@/lib/validation"
+import { deactivateExpiredAvatars } from "@/lib/subscription-lifecycle"
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,21 +15,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Автоматическая деактивация аватаров, у которых прошло более 1 месяца с subscriptionDate
-    const oneMonthAgo = new Date()
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-    
-    await prisma.avatar.updateMany({
-      where: {
-        isActive: true,
-        subscriptionDate: {
-          lt: oneMonthAgo,
-        },
-      },
-      data: {
-        isActive: false,
-      },
-    })
-    
+    await deactivateExpiredAvatars()
+
+
     const avatars = await prisma.avatar.findMany({
       where,
       include: {
@@ -52,6 +42,10 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin()
     const body = await request.json()
 
+    const parsed = avatarCreateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
+    }
     const {
       roomId,
       avatarBaseId,
@@ -66,7 +60,7 @@ export async function POST(request: NextRequest) {
       layerIndex,
       createdAt,
       subscriptionDate,
-    } = body
+    } = parsed.data
 
     // Проверяем, есть ли уже аватар с таким username в другой комнате
     const existingAvatar = await prisma.avatar.findFirst({

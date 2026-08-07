@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { avatarUpdateSchema, validationError } from "@/lib/validation"
 
 export async function GET(
   request: NextRequest,
@@ -42,6 +43,10 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
+    const parsed = avatarUpdateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
+    }
     const {
       username,
       twitchUrl,
@@ -59,7 +64,7 @@ export async function PUT(
       avatarBaseId,
       imageUrl,
       reactivationCount,
-    } = body
+    } = parsed.data
 
     // Если меняется roomId, переносим аватар в другую комнату
     if (roomId) {

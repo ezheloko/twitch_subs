@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { furnitureUpdateSchema, validationError } from "@/lib/validation"
 
 export async function PUT(
   request: NextRequest,
@@ -11,7 +12,11 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
-    const { x, y, width, height, layerIndex, isLocked } = body
+    const parsed = furnitureUpdateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
+    }
+    const { x, y, width, height, layerIndex, isLocked } = parsed.data
 
     const updateData: any = {}
     if (x !== undefined && x !== null) updateData.x = x

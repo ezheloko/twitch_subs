@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { transferMainAdminSchema, validationError } from "@/lib/validation"
 
 // POST - передать права главного админа другому админу
 export async function POST(request: NextRequest) {
@@ -16,14 +17,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { userId } = body
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      )
+    const parsed = transferMainAdminSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
     }
+    const { userId } = parsed.data
 
     // Проверяем, что пользователь существует и является админом
     const targetUser = await prisma.user.findUnique({

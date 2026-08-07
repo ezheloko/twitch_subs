@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { roomsReorderSchema, validationError } from "@/lib/validation"
 
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin()
     const body = await request.json()
 
-    const { roomOrders } = body // Массив объектов { id: string, orderNumber: number }
-
-    if (!Array.isArray(roomOrders)) {
-      return NextResponse.json(
-        { error: "roomOrders must be an array" },
-        { status: 400 }
-      )
+    const parsed = roomsReorderSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
     }
+    const { roomOrders } = parsed.data
 
     // Используем транзакцию для атомарного обновления
     await prisma.$transaction(async (tx) => {

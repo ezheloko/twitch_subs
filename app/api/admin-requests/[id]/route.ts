@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin, getCurrentUser } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { adminRequestUpdateSchema, validationError } from "@/lib/validation"
 
 // PUT - обновить статус заявки (только для главного админа)
 export async function PUT(
@@ -20,14 +21,11 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { status } = body
-
-    if (!["approved", "rejected"].includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status. Must be 'approved' or 'rejected'" },
-        { status: 400 }
-      )
+    const parsed = adminRequestUpdateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
     }
+    const { status } = parsed.data
 
     const adminRequest = await prisma.adminRequest.findUnique({
       where: { id },

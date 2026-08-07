@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { streamSettingsUpdateSchema, validationError } from "@/lib/validation"
 
 export async function GET() {
   try {
@@ -38,7 +39,11 @@ export async function PUT(request: NextRequest) {
     await requireAdmin()
     const body = await request.json()
 
-    const { slideDuration, transitionType, streamUrl } = body
+    const parsed = streamSettingsUpdateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
+    }
+    const { slideDuration, transitionType, streamUrl } = parsed.data
 
     let settings = await prisma.streamSettings.findFirst()
 

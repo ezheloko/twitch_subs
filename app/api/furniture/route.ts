@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { furnitureCreateSchema, validationError } from "@/lib/validation"
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,14 +36,11 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin()
     const body = await request.json()
 
-    const { roomId, imageUrl, x, y, width, height, layerIndex } = body
-
-    if (!roomId || !imageUrl) {
-      return NextResponse.json(
-        { error: "roomId and imageUrl are required" },
-        { status: 400 }
-      )
+    const parsed = furnitureCreateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
     }
+    const { roomId, imageUrl, x, y, width, height, layerIndex } = parsed.data
 
     const furniture = await prisma.furniture.create({
       data: {

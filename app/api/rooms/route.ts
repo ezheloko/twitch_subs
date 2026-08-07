@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { roomCreateSchema, validationError } from "@/lib/validation"
 
 export async function GET() {
   try {
@@ -29,14 +30,11 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin()
     const body = await request.json()
 
-    const { title, backgroundUrl } = body
-
-    if (!title || !backgroundUrl) {
-      return NextResponse.json(
-        { error: "Title and backgroundUrl are required" },
-        { status: 400 }
-      )
+    const parsed = roomCreateSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(parsed.error)
     }
+    const { title, backgroundUrl } = parsed.data
 
     // Находим максимальный orderNumber
     const maxOrder = await prisma.room.findFirst({
