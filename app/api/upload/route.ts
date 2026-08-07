@@ -14,7 +14,7 @@ const ALLOWED_MIME_TO_FORMAT: Record<string, "png" | "jpeg" | "webp" | "gif"> = 
   "image/gif": "gif",
 }
 
-const MAX_UPLOAD_BYTES = 15 * 1024 * 1024 // 15MB
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024 // 100MB
 
 export async function POST(request: NextRequest) {
   try {
