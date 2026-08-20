@@ -62,10 +62,30 @@ export async function POST(request: NextRequest) {
       subscriptionDate,
     } = parsed.data
 
+    // Проверяем, нет ли уже этого ника в этой же комнате (сравнение без учета регистра,
+    // чтобы "Vasya" и "vasya" тоже считались дублем)
+    const duplicateInThisRoom = await prisma.avatar.findFirst({
+      where: {
+        roomId,
+        username: { equals: username, mode: "insensitive" },
+      },
+    })
+
+    if (duplicateInThisRoom) {
+      return NextResponse.json(
+        {
+          error: duplicateInThisRoom.isActive
+            ? `Подписчик "${username}" уже добавлен в эту комнату`
+            : `Подписчик "${username}" уже есть в этой комнате, но неактивен - используйте "Активировать" вместо повторного добавления`,
+        },
+        { status: 409 }
+      )
+    }
+
     // Проверяем, есть ли уже аватар с таким username в другой комнате
     const existingAvatar = await prisma.avatar.findFirst({
       where: {
-        username,
+        username: { equals: username, mode: "insensitive" },
         roomId: { not: roomId },
       },
       include: {
@@ -87,28 +107,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const avatar = await prisma.avatar.create({
-      data: {
-        roomId,
-        avatarBaseId,
-        imageUrl,
-        username,
-        twitchUrl: twitchUrl || `https://twitch.tv/${username}`,
-        userpicUrl,
-        x,
-        y,
-        width,
-        height,
-        layerIndex: layerIndex || 0,
-        createdAt: createdAt ? new Date(createdAt) : new Date(),
-        subscriptionDate: subscriptionDate ? new Date(subscriptionDate) : new Date(),
-        userId: user.id,
-      },
-      include: {
-        room: true,
-        avatarBase: true,
-      },
-    })
+    let avatar
+    try {
+      avatar = await prisma.avatar.create({
+        data: {
+          roomId,
+          avatarBaseId,
+          imageUrl,
+          username,
+          twitchUrl: twitchUrl || `https://twitch.tv/${username}`,
+          userpicUrl,
+          x,
+          y,
+          width,
+          height,
+          layerIndex: layerIndex || 0,
+          createdAt: createdAt ? new Date(createdAt) : new Date(),
+          subscriptionDate: subscriptionDate ? new Date(subscriptionDate) : new Date(),
+          userId: user.id,
+        },
+        include: {
+          room: true,
+          avatarBase: true,
+        },
+      })
+    } catch (error: any) {
+      // На случай гонки: два почти одновременных запроса могли оба пройти
+      // проверку выше до того, как первый из них записался в базу.
+      if (error.code === "P2002") {
+        return NextResponse.json(
+          { error: `Подписчик "${username}" уже добавлен в эту комнату` },
+          { status: 409 }
+        )
+      }
+      throw error
+    }
 
     return NextResponse.json(avatar, { status: 201 })
   } catch (error: any) {
