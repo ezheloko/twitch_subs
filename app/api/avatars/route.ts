@@ -18,13 +18,17 @@ export async function GET(request: NextRequest) {
     await deactivateExpiredAvatars()
 
 
+    // Тот же порядок (createdAt asc), что и в GET /api/rooms/[id] - иначе при
+    // одинаковом layerIndex порядок отрисовки (кто поверх кого) расходится
+    // между админкой и публичной страницей, потому что при равенстве слоя
+    // z-order определяется порядком элементов в массиве.
     const avatars = await prisma.avatar.findMany({
       where,
       include: {
         room: true,
         avatarBase: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "asc" },
     })
 
     return NextResponse.json(avatars)
