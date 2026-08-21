@@ -197,11 +197,10 @@ export default function DraggableAvatar({
       {/* Control panel - показывается при клике */}
       {isSelected && (
         <div
-          className="absolute inset-0 flex items-center justify-center"
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
           style={{ zIndex: 10000 }} // Всегда поверх всех элементов
-          onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex gap-4 items-center">
+          <div className="flex gap-4 items-center pointer-events-auto">
             {/* Layer controls */}
             <div className="flex flex-col gap-2 items-center">
               <button
@@ -239,10 +238,14 @@ export default function DraggableAvatar({
         </div>
       )}
 
-      {/* Resize handle */}
-      {!disabled && !isLocked && !isSelected && (
+      {/* Resize handle. Когда карточка выделена, контейнер и так поднят на
+          zIndex 10000 (см. style выше), поэтому ручка остается доступной
+          даже если печенька "сидит" под мебелью на более высоком слое. */}
+      {!disabled && !isLocked && (
         <div
-          className="absolute bottom-0 right-0 w-4 h-4 bg-primary-600 cursor-se-resize opacity-0 group-hover:opacity-100"
+          className={`absolute bottom-0 right-0 w-4 h-4 bg-primary-600 cursor-se-resize ${
+            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
           style={{ zIndex: 10000 }} // Всегда поверх всех элементов
           onMouseDown={handleResizeStart}
         />
