@@ -5,11 +5,16 @@ import { roomCreateSchema, validationError } from "@/lib/validation"
 
 export async function GET() {
   try {
+    // orderBy для avatars обязателен и должен совпадать с GET /api/rooms/[id] -
+    // иначе при одинаковом layerIndex порядок отрисовки (кто поверх кого)
+    // расходится между этим эндпоинтом (публичная страница/стрим) и тем
+    // (админка), поскольку без ORDER BY Postgres не гарантирует порядок строк.
     const rooms = await prisma.room.findMany({
       orderBy: { orderNumber: "asc" },
       include: {
         avatars: {
           where: { isActive: true },
+          orderBy: { createdAt: "asc" },
         },
         furniture: true,
       },
