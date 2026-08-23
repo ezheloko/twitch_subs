@@ -66,8 +66,9 @@ export async function PUT(
       reactivationCount,
     } = parsed.data
 
-    // Если меняется roomId, переносим аватар в другую комнату
-    if (roomId) {
+    // Если меняется roomId или username, проверяем, что в итоговой комнате
+    // не появится дубль ника (сравнение без учета регистра)
+    if (roomId !== undefined || username !== undefined) {
       const currentAvatar = await prisma.avatar.findUnique({
         where: { id },
       })
@@ -79,24 +80,24 @@ export async function PUT(
         )
       }
 
-      // Проверяем, есть ли уже аватар с таким username в целевой комнате
-      if (username && roomId !== currentAvatar.roomId) {
-        const existingAvatar = await prisma.avatar.findFirst({
-          where: {
-            username,
-            roomId,
-            id: { not: id },
-          },
-        })
+      const targetRoomId = roomId !== undefined ? roomId : currentAvatar.roomId
+      const targetUsername = username !== undefined ? username : currentAvatar.username
 
-        if (existingAvatar) {
-          return NextResponse.json(
-            {
-              error: "Avatar with this username already exists in target room",
-            },
-            { status: 409 }
-          )
-        }
+      const duplicate = await prisma.avatar.findFirst({
+        where: {
+          roomId: targetRoomId,
+          username: { equals: targetUsername, mode: "insensitive" },
+          id: { not: id },
+        },
+      })
+
+      if (duplicate) {
+        return NextResponse.json(
+          {
+            error: `Подписчик "${targetUsername}" уже есть в этой комнате`,
+          },
+          { status: 409 }
+        )
       }
     }
 
@@ -139,6 +140,12 @@ export async function PUT(
       return NextResponse.json(avatar)
     } catch (error: any) {
       console.error("Error updating avatar:", error)
+      if (error.code === "P2002") {
+        return NextResponse.json(
+          { error: "Подписчик с таким ником уже есть в этой комнате" },
+          { status: 409 }
+        )
+      }
       return NextResponse.json(
         { error: error.message || "Failed to update avatar", details: error.toString() },
         { status: 500 }

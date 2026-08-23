@@ -75,10 +75,17 @@ export default function AvatarPanel({
       return
     }
 
-    // Проверяем, есть ли уже аватар с таким username
-    const existingAvatar = existingAvatars.find((a) => a.username === username.trim())
+    // Проверяем, есть ли уже аватар с таким username (без учета регистра)
+    const trimmedUsername = username.trim().toLowerCase()
+    const existingAvatar = existingAvatars.find(
+      (a) => a.username.toLowerCase() === trimmedUsername
+    )
     if (existingAvatar) {
-      alert(`Аватар с именем "${username}" уже существует в этой комнате`)
+      alert(
+        existingAvatar.isActive
+          ? `Аватар с именем "${username}" уже существует в этой комнате`
+          : `Аватар с именем "${username}" уже есть в этой комнате, но неактивен - используйте кнопку "Активировать" вместо повторного добавления`
+      )
       return
     }
 

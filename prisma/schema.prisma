@@ -131,6 +131,8 @@ model Avatar {
   avatarBase     AvatarBase  @relation(fields: [avatarBaseId], references: [id], onDelete: Cascade)
   userId         String
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, username]) // Один и тот же ник нельзя добавить в комнату дважды
 }
 
 model StreamSettings {
